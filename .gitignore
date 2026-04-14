@@ -14,3 +14,4 @@ frontend/dist/
 
 # App-generated temporary files
 imagenes/ImgsProcesadas/tmp_uploads/
+backend/storage/

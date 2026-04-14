@@ -1,4 +1,7 @@
+from io import BytesIO
+
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from backend.app.main import app
 
@@ -71,3 +74,36 @@ def test_determinant_requires_square_matrix() -> None:
     assert (
         response.json()["detail"] == "determinant operation requires a square matrix"
     )
+
+
+def _make_test_image_bytes() -> bytes:
+    image = Image.new("RGBA", (4, 4), (255, 0, 0, 255))
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def test_filter_process_success() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "completed"
+    assert "pixel_art" in body["artifacts"]
+
+
+def test_filter_process_rejects_invalid_pixel_size() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 0, "color_levels": 64},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "pixel_size must be between 1 and 64"
