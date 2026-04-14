@@ -1,6 +1,8 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
+const DEFAULT_POLL_INTERVAL_MS = 900;
+
 export async function getHealth() {
   const response = await fetch(`${API_BASE_URL}/health`);
   if (!response.ok) {
@@ -70,4 +72,83 @@ export async function processFilters({ file, pixelSize, colorLevels }) {
       ])
     ),
   };
+}
+
+export async function sumImagesComposition({
+  landscapeFile,
+  characterFile,
+  pixelSize,
+  colorLevels,
+}) {
+  const formData = new FormData();
+  formData.append("landscape_image", landscapeFile);
+  formData.append("character_image", characterFile);
+  formData.append("pixel_size", String(pixelSize));
+  formData.append("color_levels", String(colorLevels));
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/compositions/sum-images`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Image composition failed");
+  }
+
+  return {
+    ...data,
+    artifacts: Object.fromEntries(
+      Object.entries(data.artifacts || {}).map(([key, value]) => [
+        key,
+        value.startsWith("http") ? value : `${API_BASE_URL}${value}`,
+      ])
+    ),
+  };
+}
+
+export async function getJobStatus(jobId) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Job status request failed");
+  }
+  return data;
+}
+
+export async function getJobResult(jobId) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/results/${jobId}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Job result request failed");
+  }
+
+  return {
+    ...data,
+    artifacts: Object.fromEntries(
+      Object.entries(data.artifacts || {}).map(([key, value]) => [
+        key,
+        value.startsWith("http") ? value : `${API_BASE_URL}${value}`,
+      ])
+    ),
+  };
+}
+
+export function getResultBundleDownloadUrl(jobId) {
+  return `${API_BASE_URL}/api/v1/results/${jobId}/download`;
+}
+
+export async function waitForJobCompletion(jobId, maxAttempts = 25) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const status = await getJobStatus(jobId);
+    if (status.status === "completed") {
+      return getJobResult(jobId);
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, DEFAULT_POLL_INTERVAL_MS);
+    });
+  }
+
+  throw new Error("Job did not finish in time");
 }

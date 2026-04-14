@@ -106,6 +106,7 @@ def test_filter_process_success() -> None:
     assert "pixel_art" in body["artifacts"]
     assert "numeric_matrix_xlsx" in body["artifacts"]
     assert "numeric_matrix_preview" in body["artifacts"]
+    assert "bundle_zip" in body["artifacts"]
 
     job_id = body["job_id"]
     status_response = client.get(f"/api/v1/jobs/{job_id}")
@@ -127,6 +128,64 @@ def test_filter_process_rejects_invalid_pixel_size() -> None:
 
     assert response.status_code == 400
     assert response.json()["detail"] == "pixel_size must be between 1 and 64"
+
+
+def test_filter_bundle_download_endpoint() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+    assert response.status_code == 200
+    job_id = response.json()["job_id"]
+
+    download_response = client.get(f"/api/v1/results/{job_id}/download")
+    assert download_response.status_code == 200
+    assert download_response.headers["content-type"].startswith("application/zip")
+
+
+def test_sum_images_composition_success() -> None:
+    image_a = _make_test_image_bytes()
+    image_b = _make_test_image_bytes()
+
+    response = client.post(
+        "/api/v1/compositions/sum-images",
+        files={
+            "landscape_image": ("landscape.png", image_a, "image/png"),
+            "character_image": ("character.png", image_b, "image/png"),
+        },
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "completed"
+    assert "sum_final_image" in body["artifacts"]
+    assert "sum_matrix_xlsx" in body["artifacts"]
+
+
+def test_sum_images_composition_rejects_dimension_mismatch() -> None:
+    image_small = _make_test_image_bytes()
+
+    output = BytesIO()
+    Image.new("RGBA", (6, 4), (0, 255, 0, 255)).save(output, format="PNG")
+    image_large = output.getvalue()
+
+    response = client.post(
+        "/api/v1/compositions/sum-images",
+        files={
+            "landscape_image": ("landscape.png", image_small, "image/png"),
+            "character_image": ("character.png", image_large, "image/png"),
+        },
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "Landscape and character images must have the same dimensions"
+    )
 
 
 def test_unknown_job_returns_not_found() -> None:
