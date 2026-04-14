@@ -42,18 +42,45 @@ def relative_to_assets(path: str) -> Path:
 def Agregarlaimagen():
     global imag_a_procesar
     # Definir los tipos de archivo permitidos
-    filetypes = [("Image Files", ".png;.jpg;.jpeg;.bmp;*.gif")]
+    filetypes = [("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")]
 
     # Abrir el diálogo para seleccionar una imagen
-    file_path = filedialog.askopenfilename(filetypes=filetypes)
-    if file_path:
+    file_handle = filedialog.askopenfile(mode="rb", filetypes=filetypes)
+    if file_handle:
+        try:
+            suffix = Path(file_handle.name).suffix.lower() or ".png"
+            carpeta_tmp = Img_prcs / "tmp_uploads"
+            carpeta_tmp.mkdir(parents=True, exist_ok=True)
+            file_path = carpeta_tmp / f"imagen_transpuesta{suffix}"
+            try:
+                with open(file_path, "wb") as salida:
+                    salida.write(file_handle.read())
+            except OSError as error:
+                messagebox.showerror(
+                    "Error al leer archivo",
+                    "No se pudo leer el archivo seleccionado. "
+                    "Si el archivo esta en iCloud, descargalo primero localmente.\n"
+                    f"Detalle: {error}"
+                )
+                return
+        finally:
+            file_handle.close()
+
         # Guardar la ruta de la imagen cargada en la variable
         imag_a_procesar= file_path
 
         # Redimensionar la imagen seleccionada para su visualización
-        img = Image.open(file_path)
-        img = img.resize((515, 290), Image.LANCZOS)  
-        new_image = ImageTk.PhotoImage(img)
+        try:
+            img = Image.open(file_path)
+            img = img.resize((515, 290), Image.LANCZOS)
+            new_image = ImageTk.PhotoImage(img)
+        except OSError as error:
+            messagebox.showerror(
+                "Error al abrir imagen",
+                f"No se pudo abrir la imagen seleccionada.\nDetalle: {error}"
+            )
+            imag_a_procesar = None
+            return
 
         # Actualizar la imagen en el canvas
         canvas.itemconfig(image_2, image=new_image)
@@ -130,6 +157,8 @@ def GenerarMatricesNumericas():
 
 def EjecutarTransposicion():
     global imag_a_procesar
+    estado_proceso = {"error": None}
+
     def procesar():
             try:
                 MinimizarColores()
@@ -142,10 +171,29 @@ def EjecutarTransposicion():
                         ImagenTranspuesta,
                         mapeo_color_transposicion
                 )
-            finally:
-                # Cerrar la ventana de progreso al finalizar el procesamiento
-                progreso_window.after(0, lambda: progreso_window.destroy())
-                window.after(0, lambda: Desplazarse_a(window, "Pantallafinaltranspuesta"))  # Cambiar de pantalla en el hilo principal
+            except Exception as error:
+                estado_proceso["error"] = error
+
+    def finalizar_proceso():
+        progressbar = getattr(progreso_window, "_progressbar", None)
+        if progressbar is not None:
+            progressbar.stop()
+        if progreso_window.grab_current() == progreso_window:
+            progreso_window.grab_release()
+        if progreso_window.winfo_exists():
+            progreso_window.destroy()
+
+        if estado_proceso["error"] is not None:
+            messagebox.showerror("Error", f"Ocurrio un error durante el procesamiento:\n{estado_proceso['error']}")
+            return
+
+        Desplazarse_a(window, "Pantallafinaltranspuesta")
+
+    def monitorear_hilo():
+        if hilo_procesamiento.is_alive():
+            window.after(100, monitorear_hilo)
+            return
+        finalizar_proceso()
     
         # Verificar las condiciones antes de mostrar la barra de progreso
     if not imag_a_procesar:
@@ -156,7 +204,9 @@ def EjecutarTransposicion():
     progreso_window= mostrar_barra_progreso(window)
     
     # Ejecutar el procesamiento en un hilo separado
-    threading.Thread(target=procesar, daemon=True).start()
+    hilo_procesamiento = threading.Thread(target=procesar, daemon=True)
+    hilo_procesamiento.start()
+    monitorear_hilo()
 
 
 

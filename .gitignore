@@ -1,0 +1,16 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+
+# Node dependencies and builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Local environment files
+.env
+*.env.local
+
+# App-generated temporary files
+imagenes/ImgsProcesadas/tmp_uploads/

@@ -30,6 +30,7 @@ def mostrar_barra_progreso(window):
     progress = ttk.Progressbar(progreso_window, orient="horizontal", mode="indeterminate", length=300)
     progress.pack(pady=10)
     progress.start()
+    progreso_window._progressbar = progress
 
     # Evita que se cierre la ventana manualmente
     progreso_window.protocol("WM_DELETE_WINDOW", lambda: None)

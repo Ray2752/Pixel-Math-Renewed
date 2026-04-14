@@ -1,0 +1,9 @@
+{
+  "name": "pixel-math-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000"
+  }
+}
