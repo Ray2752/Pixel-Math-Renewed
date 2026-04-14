@@ -16,6 +16,10 @@ function parseMatrix(value, label) {
   }
 }
 
+function isImageArtifact(url) {
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(url);
+}
+
 function App() {
   const [status, setStatus] = useState("Checking backend...");
   const [operation, setOperation] = useState("sum");
@@ -178,6 +182,17 @@ function App() {
                 </li>
               ))}
             </ul>
+
+            <div className="preview-grid">
+              {Object.entries(filterResult.artifacts)
+                .filter(([, value]) => isImageArtifact(value))
+                .map(([key, value]) => (
+                  <figure key={key} className="preview-card">
+                    <img src={value} alt={key} />
+                    <figcaption>{key}</figcaption>
+                  </figure>
+                ))}
+            </div>
           </div>
         )}
       </section>

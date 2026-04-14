@@ -28,6 +28,15 @@ def test_sum_operation_success() -> None:
     assert body["operation"] == "sum"
     assert body["result_matrix"] == [[11.0, 22.0], [33.0, 44.0]]
 
+    job_id = body["job_id"]
+    status_response = client.get(f"/api/v1/jobs/{job_id}")
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "completed"
+
+    result_response = client.get(f"/api/v1/results/{job_id}")
+    assert result_response.status_code == 200
+    assert result_response.json()["result"]["operation"] == "sum"
+
 
 def test_sum_operation_requires_matrix_b() -> None:
     payload = {"operation": "sum", "matrix_a": [[1, 2], [3, 4]]}
@@ -95,6 +104,17 @@ def test_filter_process_success() -> None:
     body = response.json()
     assert body["status"] == "completed"
     assert "pixel_art" in body["artifacts"]
+    assert "numeric_matrix_xlsx" in body["artifacts"]
+    assert "numeric_matrix_preview" in body["artifacts"]
+
+    job_id = body["job_id"]
+    status_response = client.get(f"/api/v1/jobs/{job_id}")
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "completed"
+
+    result_response = client.get(f"/api/v1/results/{job_id}")
+    assert result_response.status_code == 200
+    assert result_response.json()["result"]["operation"] == "filters"
 
 
 def test_filter_process_rejects_invalid_pixel_size() -> None:
@@ -107,3 +127,11 @@ def test_filter_process_rejects_invalid_pixel_size() -> None:
 
     assert response.status_code == 400
     assert response.json()["detail"] == "pixel_size must be between 1 and 64"
+
+
+def test_unknown_job_returns_not_found() -> None:
+    status_response = client.get("/api/v1/jobs/unknown-job")
+    assert status_response.status_code == 404
+
+    result_response = client.get("/api/v1/results/unknown-job")
+    assert result_response.status_code == 404

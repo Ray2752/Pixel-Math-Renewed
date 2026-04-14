@@ -107,3 +107,31 @@ ul {
 a {
   color: #8ad7ff;
 }
+
+.preview-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.preview-card {
+  margin: 0;
+  border: 1px solid rgba(242, 244, 248, 0.16);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(3, 10, 25, 0.6);
+}
+
+.preview-card img {
+  width: 100%;
+  display: block;
+  border-radius: 0.4rem;
+  image-rendering: pixelated;
+}
+
+.preview-card figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #bcd4e8;
+}
