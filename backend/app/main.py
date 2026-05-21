@@ -1,7 +1,14 @@
+import sys
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any
 import zipfile
+
+# Ensure the repo root (parent of backend/) is on sys.path so that
+# `src.Filtros`, `src.utils`, etc. are importable in all environments.
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 import numpy as np
 import pandas as pd
