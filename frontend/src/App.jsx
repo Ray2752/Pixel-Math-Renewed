@@ -1,12 +1,30 @@
 import { useEffect, useState } from "react";
 import {
   getHealth,
+  getMatrixData,
   getResultBundleDownloadUrl,
   processFilters,
   runImageOperation,
   sumImagesComposition,
   waitForJobCompletion,
 } from "./api/client";
+
+function MatrixTable({ rows }) {
+  if (!rows || rows.length === 0) return <p className="meta-text">Empty matrix.</p>;
+  return (
+    <div className="matrix-table-wrap">
+      <table className="matrix-table">
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              {row.map((cell, j) => <td key={j}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 
 function isImageArtifact(url) {
@@ -81,10 +99,16 @@ function App() {
   const [landscapeDimensions, setLandscapeDimensions] = useState(null);
   const [characterFile, setCharacterFile] = useState(null);
   const [characterDimensions, setCharacterDimensions] = useState(null);
+  const [sumPixelSize, setSumPixelSize] = useState(10);
+  const [sumColorLevels, setSumColorLevels] = useState(64);
   const [sumImageResult, setSumImageResult] = useState(null);
   const [sumImageError, setSumImageError] = useState("");
   const [sumJobStatus, setSumJobStatus] = useState("");
   const [sumCopyStatus, setSumCopyStatus] = useState("");
+
+  const [imgOpMatrixView, setImgOpMatrixView] = useState(null);
+  const [filterMatrixView, setFilterMatrixView] = useState(null);
+  const [sumMatrixView, setSumMatrixView] = useState(null);
 
   const hasCompositionDimensionMismatch =
     landscapeDimensions &&
@@ -194,8 +218,8 @@ function App() {
       const kickoff = await sumImagesComposition({
         landscapeFile,
         characterFile,
-        pixelSize,
-        colorLevels,
+        pixelSize: sumPixelSize,
+        colorLevels: sumColorLevels,
       });
       setSumJobStatus(`Job ${kickoff.job_id} running...`);
 
@@ -258,6 +282,19 @@ function App() {
       setCharacterDimensions(dimensions);
     } catch (error) {
       setSumImageError(error.message);
+    }
+  }
+
+  async function handleViewMatrix(jobId, artifactKey, setMatrixView, currentView) {
+    if (currentView?.key === artifactKey) {
+      setMatrixView(null);
+      return;
+    }
+    try {
+      const data = await getMatrixData(jobId, artifactKey);
+      setMatrixView({ key: artifactKey, rows: data.rows, shape: data.shape });
+    } catch {
+      setMatrixView({ key: artifactKey, rows: null, shape: null });
     }
   }
 
@@ -343,23 +380,36 @@ function App() {
                 <p><strong>Determinant value: {imgOpScalar.toFixed(4)}</strong></p>
               )}
               <p>
-                <a
-                  href={getResultBundleDownloadUrl(imgOpResult.job_id)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={getResultBundleDownloadUrl(imgOpResult.job_id)} target="_blank" rel="noreferrer">
                   Download ZIP bundle
                 </a>
               </p>
-              <ul>
+
+              <div className="artifact-downloads">
                 {Object.entries(imgOpResult.artifacts).map(([key, value]) => (
-                  <li key={key}>
-                    <a href={value} target="_blank" rel="noreferrer">
-                      {key}
+                  <span key={key} className="artifact-item">
+                    <a href={value} target="_blank" rel="noreferrer" download={key.endsWith("_xlsx") || isImageArtifact(value)}>
+                      ↓ {key}
                     </a>
-                  </li>
+                    {key.endsWith("_xlsx") && (
+                      <button
+                        type="button"
+                        className="btn-view-matrix"
+                        onClick={() => handleViewMatrix(imgOpResult.job_id, key, setImgOpMatrixView, imgOpMatrixView)}
+                      >
+                        {imgOpMatrixView?.key === key ? "Hide" : "View"}
+                      </button>
+                    )}
+                  </span>
                 ))}
-              </ul>
+              </div>
+              {imgOpMatrixView && (
+                <div className="matrix-viewer">
+                  <p className="meta-text">Matrix: {imgOpMatrixView.key} — {imgOpMatrixView.shape?.[0]}×{imgOpMatrixView.shape?.[1]}</p>
+                  {imgOpMatrixView.rows ? <MatrixTable rows={imgOpMatrixView.rows} /> : <p className="error">Could not load matrix.</p>}
+                </div>
+              )}
+
               <div className="preview-grid">
                 {Object.entries(imgOpResult.artifacts)
                   .filter(([, value]) => isImageArtifact(value))
@@ -437,15 +487,30 @@ function App() {
                   Download ZIP bundle
                 </a>
               </p>
-              <ul>
+              <div className="artifact-downloads">
                 {Object.entries(filterResult.artifacts).map(([key, value]) => (
-                  <li key={key}>
-                    <a href={value} target="_blank" rel="noreferrer">
-                      {key}
+                  <span key={key} className="artifact-item">
+                    <a href={value} target="_blank" rel="noreferrer" download={key.endsWith("_xlsx") || isImageArtifact(value)}>
+                      ↓ {key}
                     </a>
-                  </li>
+                    {key.endsWith("_xlsx") && (
+                      <button
+                        type="button"
+                        className="btn-view-matrix"
+                        onClick={() => handleViewMatrix(filterResult.job_id, key, setFilterMatrixView, filterMatrixView)}
+                      >
+                        {filterMatrixView?.key === key ? "Hide" : "View"}
+                      </button>
+                    )}
+                  </span>
                 ))}
-              </ul>
+              </div>
+              {filterMatrixView && (
+                <div className="matrix-viewer">
+                  <p className="meta-text">Matrix: {filterMatrixView.key} — {filterMatrixView.shape?.[0]}×{filterMatrixView.shape?.[1]}</p>
+                  {filterMatrixView.rows ? <MatrixTable rows={filterMatrixView.rows} /> : <p className="error">Could not load matrix.</p>}
+                </div>
+              )}
 
               <div className="preview-grid">
                 {Object.entries(filterResult.artifacts)
@@ -491,6 +556,28 @@ function App() {
             </p>
           )}
 
+          <label>
+            Pixel size
+            <input
+              type="number"
+              min={1}
+              max={64}
+              value={sumPixelSize}
+              onChange={(event) => setSumPixelSize(Number(event.target.value))}
+            />
+          </label>
+
+          <label>
+            Color levels
+            <input
+              type="number"
+              min={2}
+              max={256}
+              value={sumColorLevels}
+              onChange={(event) => setSumColorLevels(Number(event.target.value))}
+            />
+          </label>
+
           <button type="submit" disabled={hasCompositionDimensionMismatch}>
             Compose and Sum Images
           </button>
@@ -512,35 +599,86 @@ function App() {
             <div className="result">
               <p>Job: {sumImageResult.job_id}</p>
               <p>
-                <a
-                  href={getResultBundleDownloadUrl(sumImageResult.job_id)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={getResultBundleDownloadUrl(sumImageResult.job_id)} target="_blank" rel="noreferrer">
                   Download ZIP bundle
                 </a>
               </p>
 
-              <ul>
-                {Object.entries(sumImageResult.artifacts).map(([key, value]) => (
-                  <li key={key}>
-                    <a href={value} target="_blank" rel="noreferrer">
-                      {key}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-
+              <h3 className="result-subtitle">Individual Matrices</h3>
               <div className="preview-grid">
-                {Object.entries(sumImageResult.artifacts)
-                  .filter(([, value]) => isImageArtifact(value))
-                  .map(([key, value]) => (
+                {["landscape_pixel", "landscape_numeric_preview", "character_pixel", "character_numeric_preview"].map((key) =>
+                  sumImageResult.artifacts[key] ? (
                     <figure key={key} className="preview-card">
-                      <img src={value} alt={key} />
+                      <img src={sumImageResult.artifacts[key]} alt={key} />
                       <figcaption>{key}</figcaption>
                     </figure>
-                  ))}
+                  ) : null
+                )}
               </div>
+              <div className="artifact-downloads">
+                {["landscape_source", "landscape_pixel", "landscape_matrix_xlsx", "character_source", "character_pixel", "character_matrix_xlsx"].map((key) =>
+                  sumImageResult.artifacts[key] ? (
+                    <span key={key} className="artifact-item">
+                      <a href={sumImageResult.artifacts[key]} target="_blank" rel="noreferrer" download>
+                        ↓ {key}
+                      </a>
+                      {key.endsWith("_xlsx") && (
+                        <button
+                          type="button"
+                          className="btn-view-matrix"
+                          onClick={() => handleViewMatrix(sumImageResult.job_id, key, setSumMatrixView, sumMatrixView)}
+                        >
+                          {sumMatrixView?.key === key ? "Hide" : "View"}
+                        </button>
+                      )}
+                    </span>
+                  ) : null
+                )}
+              </div>
+              {sumMatrixView && ["landscape_matrix_xlsx", "character_matrix_xlsx"].includes(sumMatrixView.key) && (
+                <div className="matrix-viewer">
+                  <p className="meta-text">Matrix: {sumMatrixView.key} — {sumMatrixView.shape?.[0]}×{sumMatrixView.shape?.[1]}</p>
+                  {sumMatrixView.rows ? <MatrixTable rows={sumMatrixView.rows} /> : <p className="error">Could not load matrix.</p>}
+                </div>
+              )}
+
+              <h3 className="result-subtitle">Final Composition</h3>
+              <div className="preview-grid">
+                {["sum_final_image", "sum_numeric_preview"].map((key) =>
+                  sumImageResult.artifacts[key] ? (
+                    <figure key={key} className="preview-card">
+                      <img src={sumImageResult.artifacts[key]} alt={key} />
+                      <figcaption>{key}</figcaption>
+                    </figure>
+                  ) : null
+                )}
+              </div>
+              <div className="artifact-downloads">
+                {["sum_final_image", "sum_matrix_xlsx"].map((key) =>
+                  sumImageResult.artifacts[key] ? (
+                    <span key={key} className="artifact-item">
+                      <a href={sumImageResult.artifacts[key]} target="_blank" rel="noreferrer" download>
+                        ↓ {key}
+                      </a>
+                      {key.endsWith("_xlsx") && (
+                        <button
+                          type="button"
+                          className="btn-view-matrix"
+                          onClick={() => handleViewMatrix(sumImageResult.job_id, key, setSumMatrixView, sumMatrixView)}
+                        >
+                          {sumMatrixView?.key === key ? "Hide" : "View"}
+                        </button>
+                      )}
+                    </span>
+                  ) : null
+                )}
+              </div>
+              {sumMatrixView?.key === "sum_matrix_xlsx" && (
+                <div className="matrix-viewer">
+                  <p className="meta-text">Matrix: {sumMatrixView.key} — {sumMatrixView.shape?.[0]}×{sumMatrixView.shape?.[1]}</p>
+                  {sumMatrixView.rows ? <MatrixTable rows={sumMatrixView.rows} /> : <p className="error">Could not load matrix.</p>}
+                </div>
+              )}
             </div>
           </div>
         )}

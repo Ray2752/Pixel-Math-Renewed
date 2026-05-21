@@ -162,6 +162,15 @@ export function getResultBundleDownloadUrl(jobId) {
   return `${API_BASE_URL}/api/v1/results/${jobId}/download`;
 }
 
+export async function getMatrixData(jobId, artifactKey) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/results/${jobId}/matrix/${artifactKey}`
+  );
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Could not load matrix");
+  return data;
+}
+
 export async function waitForJobCompletion(jobId, maxAttempts = 25) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const status = await getJobStatus(jobId);

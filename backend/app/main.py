@@ -310,6 +310,7 @@ def _build_image_op_artifacts(
 ) -> dict[str, str]:
     return {
         "source": as_artifact_url(job_id, source_path),
+        "simplified": as_artifact_url(job_id, filter_outputs["simplified_path"]),
         "pixel_art": as_artifact_url(job_id, filter_outputs["pixel_path"]),
         "numeric_matrix_xlsx": as_artifact_url(job_id, filter_outputs["matrix_xlsx"]),
         "color_map_xlsx": as_artifact_url(job_id, filter_outputs["color_map_xlsx"]),
@@ -688,7 +689,11 @@ async def sum_images_composition(
         "landscape_source": as_artifact_url(job_id, landscape_source),
         "character_source": as_artifact_url(job_id, character_source),
         "landscape_pixel": as_artifact_url(job_id, landscape_outputs["pixel_path"]),
+        "landscape_matrix_xlsx": as_artifact_url(job_id, landscape_outputs["matrix_xlsx"]),
+        "landscape_numeric_preview": as_artifact_url(job_id, landscape_outputs["numeric_preview"]),
         "character_pixel": as_artifact_url(job_id, character_outputs["pixel_path"]),
+        "character_matrix_xlsx": as_artifact_url(job_id, character_outputs["matrix_xlsx"]),
+        "character_numeric_preview": as_artifact_url(job_id, character_outputs["numeric_preview"]),
         "sum_matrix_xlsx": as_artifact_url(job_id, Path(f"{sum_base.name}.xlsx")),
         "sum_numeric_preview": as_artifact_url(job_id, sum_numeric_preview),
         "sum_final_image": as_artifact_url(job_id, sum_final_image),
@@ -734,6 +739,34 @@ def get_result(job_id: str) -> dict[str, Any]:
         "artifacts": job["artifacts"],
         "result": job["result"],
     }
+
+
+@app.get(f"{settings.api_prefix}/results/{{job_id}}/matrix/{{artifact_key}}")
+def view_matrix_data(job_id: str, artifact_key: str) -> dict[str, Any]:
+    job = JOB_STORE.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    artifacts = job.get("artifacts", {})
+    if artifact_key not in artifacts:
+        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_key}' not found")
+
+    artifact_url = artifacts[artifact_key]
+    filename = Path(artifact_url).name
+    file_path = ARTIFACTS_ROOT / job_id / filename
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    if file_path.suffix.lower() != ".xlsx":
+        raise HTTPException(status_code=400, detail="Artifact is not an Excel file")
+
+    try:
+        df = pd.read_excel(str(file_path), header=None)
+        rows = df.fillna(0).astype(int).values.tolist()
+        return {"rows": rows, "shape": [len(rows), len(rows[0]) if rows else 0]}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not read matrix: {exc}") from exc
 
 
 @app.get(f"{settings.api_prefix}/results/{{job_id}}/download")
