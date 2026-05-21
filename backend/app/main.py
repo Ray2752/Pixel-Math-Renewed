@@ -775,7 +775,16 @@ def view_matrix_data(job_id: str, artifact_key: str) -> dict[str, Any]:
 
     try:
         df = pd.read_excel(str(file_path), header=None)
-        rows = df.fillna(0).astype(int).values.tolist()
+
+        def _cell(v: Any) -> int | str:
+            if pd.isna(v):
+                return 0
+            try:
+                return int(v)
+            except (ValueError, TypeError):
+                return str(v)
+
+        rows = [[_cell(v) for v in row] for row in df.values.tolist()]
         return {"rows": rows, "shape": [len(rows), len(rows[0]) if rows else 0]}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not read matrix: {exc}") from exc
