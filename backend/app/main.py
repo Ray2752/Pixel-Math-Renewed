@@ -88,8 +88,13 @@ def validate_uploaded_image(content: bytes, filename: str) -> tuple[int, int]:
         ) from exc
 
 
-def save_upload(content: bytes, destination: Path) -> None:
-    destination.write_bytes(content)
+def save_upload(content: bytes, destination: Path, max_dim: int = 800) -> None:
+    with Image.open(BytesIO(content)) as img:
+        w, h = img.size
+        if w > max_dim or h > max_dim:
+            scale = max_dim / max(w, h)
+            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+        img.save(destination)
 
 
 def make_square(source: Path, dest: Path) -> None:
