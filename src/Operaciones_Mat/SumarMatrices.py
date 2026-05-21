@@ -1,5 +1,4 @@
 import pandas as pd
-from tkinter import messagebox
 
 
 def cargar_y_sumar_matrices(matrizpersonaje, matrizpaisaje, colores_paisaje, colores_personaje, nummaxpaisa, ruta_excel_suma):
