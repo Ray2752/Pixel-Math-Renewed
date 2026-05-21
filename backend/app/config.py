@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     api_prefix: str = "/api/v1"
     max_upload_mb: int = 10
+    allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
