@@ -3,25 +3,11 @@ import {
   getHealth,
   getResultBundleDownloadUrl,
   processFilters,
-  runOperation,
+  runImageOperation,
   sumImagesComposition,
   waitForJobCompletion,
 } from "./api/client";
 
-const DEFAULT_A = "[[1,2],[3,4]]";
-const DEFAULT_B = "[[10,20],[30,40]]";
-
-function parseMatrix(value, label) {
-  try {
-    const parsed = JSON.parse(value);
-    if (!Array.isArray(parsed) || !Array.isArray(parsed[0])) {
-      throw new Error();
-    }
-    return parsed;
-  } catch {
-    throw new Error(`${label} must be valid JSON matrix, for example [[1,2],[3,4]]`);
-  }
-}
 
 function isImageArtifact(url) {
   return /\.(png|jpg|jpeg|webp|gif)$/i.test(url);
@@ -71,11 +57,16 @@ async function copyJsonToClipboard(value) {
 
 function App() {
   const [status, setStatus] = useState("Checking backend...");
-  const [operation, setOperation] = useState("sum");
-  const [matrixA, setMatrixA] = useState(DEFAULT_A);
-  const [matrixB, setMatrixB] = useState(DEFAULT_B);
-  const [opResult, setOpResult] = useState(null);
-  const [opError, setOpError] = useState("");
+
+  const [imgOp, setImgOp] = useState("transpose");
+  const [imgOpFile, setImgOpFile] = useState(null);
+  const [imgOpDimensions, setImgOpDimensions] = useState(null);
+  const [imgOpPixelSize, setImgOpPixelSize] = useState(10);
+  const [imgOpColorLevels, setImgOpColorLevels] = useState(64);
+  const [imgOpResult, setImgOpResult] = useState(null);
+  const [imgOpScalar, setImgOpScalar] = useState(null);
+  const [imgOpError, setImgOpError] = useState("");
+  const [imgOpJobStatus, setImgOpJobStatus] = useState("");
 
   const [imageFile, setImageFile] = useState(null);
   const [imageDimensions, setImageDimensions] = useState(null);
@@ -94,7 +85,6 @@ function App() {
   const [sumImageError, setSumImageError] = useState("");
   const [sumJobStatus, setSumJobStatus] = useState("");
   const [sumCopyStatus, setSumCopyStatus] = useState("");
-  const [opCopyStatus, setOpCopyStatus] = useState("");
 
   const hasCompositionDimensionMismatch =
     landscapeDimensions &&
@@ -112,23 +102,50 @@ function App() {
       });
   }, []);
 
-  async function handleOperationSubmit(event) {
+  async function handleImgOpSubmit(event) {
     event.preventDefault();
-    setOpError("");
-    setOpResult(null);
-    setOpCopyStatus("");
+    setImgOpError("");
+    setImgOpResult(null);
+    setImgOpScalar(null);
+    setImgOpJobStatus("");
+
+    if (!imgOpFile) {
+      setImgOpError("Select an image file first.");
+      return;
+    }
 
     try {
-      const parsedA = parseMatrix(matrixA, "Matrix A");
-      const parsedB = operation === "sum" ? parseMatrix(matrixB, "Matrix B") : null;
-      const result = await runOperation({
-        operation,
-        matrixA: parsedA,
-        matrixB: parsedB,
+      const kickoff = await runImageOperation({
+        operation: imgOp,
+        file: imgOpFile,
+        pixelSize: imgOpPixelSize,
+        colorLevels: imgOpColorLevels,
       });
-      setOpResult(result);
+      setImgOpJobStatus(`Job ${kickoff.job_id} running...`);
+      const completed = await waitForJobCompletion(kickoff.job_id);
+      setImgOpResult(completed);
+      if (imgOp === "determinant" && completed.result?.scalar_result != null) {
+        setImgOpScalar(completed.result.scalar_result);
+      }
+      setImgOpJobStatus(`Job ${kickoff.job_id} completed.`);
     } catch (error) {
-      setOpError(error.message);
+      setImgOpError(error.message);
+    }
+  }
+
+  async function handleImgOpFileChange(event) {
+    const file = event.target.files?.[0] || null;
+    setImgOpFile(file);
+    setImgOpDimensions(null);
+    setImgOpError("");
+
+    if (!file) return;
+
+    try {
+      const dimensions = await readImageDimensions(file);
+      setImgOpDimensions(dimensions);
+    } catch (error) {
+      setImgOpError(error.message);
     }
   }
 
@@ -261,14 +278,13 @@ function App() {
 
       <section className="panel">
         <h2>Matrix Operations</h2>
-        <form onSubmit={handleOperationSubmit} className="form-grid">
+        <form onSubmit={handleImgOpSubmit} className="form-grid">
           <label>
             Operation
             <select
-              value={operation}
-              onChange={(event) => setOperation(event.target.value)}
+              value={imgOp}
+              onChange={(event) => setImgOp(event.target.value)}
             >
-              <option value="sum">Sum</option>
               <option value="transpose">Transpose</option>
               <option value="rotate">Rotate</option>
               <option value="determinant">Determinant</option>
@@ -276,39 +292,85 @@ function App() {
           </label>
 
           <label>
-            Matrix A (JSON)
-            <textarea
-              rows={4}
-              value={matrixA}
-              onChange={(event) => setMatrixA(event.target.value)}
+            Image
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImgOpFileChange}
             />
           </label>
 
-          {operation === "sum" && (
-            <label>
-              Matrix B (JSON)
-              <textarea
-                rows={4}
-                value={matrixB}
-                onChange={(event) => setMatrixB(event.target.value)}
-              />
-            </label>
+          <p className="meta-text">Selected image size: {formatDimensions(imgOpDimensions)}</p>
+          {(imgOp === "rotate" || imgOp === "determinant") && imgOpDimensions &&
+            imgOpDimensions.width !== imgOpDimensions.height && (
+            <p className="warn-text">
+              Image is not square — it will be auto-cropped to {Math.min(imgOpDimensions.width, imgOpDimensions.height)}×{Math.min(imgOpDimensions.width, imgOpDimensions.height)} before processing.
+            </p>
           )}
 
-          <button type="submit">Run Operation</button>
+          <label>
+            Pixel size
+            <input
+              type="number"
+              min={1}
+              max={64}
+              value={imgOpPixelSize}
+              onChange={(event) => setImgOpPixelSize(Number(event.target.value))}
+            />
+          </label>
+
+          <label>
+            Color levels
+            <input
+              type="number"
+              min={2}
+              max={256}
+              value={imgOpColorLevels}
+              onChange={(event) => setImgOpColorLevels(Number(event.target.value))}
+            />
+          </label>
+
+          <button type="submit">Process Image</button>
         </form>
 
-        {opError && <p className="error">{opError}</p>}
-        {opResult && (
+        {imgOpError && <p className="error">{imgOpError}</p>}
+        {imgOpJobStatus && <p className="job-status">{imgOpJobStatus}</p>}
+        {imgOpResult && (
           <div className="result-wrap">
-            <button
-              type="button"
-              onClick={() => handleCopyResult(opResult, setOpCopyStatus, "Operation result")}
-            >
-              Copy JSON result
-            </button>
-            {opCopyStatus && <p className="copy-status">{opCopyStatus}</p>}
-            <pre className="result">{JSON.stringify(opResult, null, 2)}</pre>
+            <div className="result">
+              <p>Job: {imgOpResult.job_id}</p>
+              {imgOpScalar != null && (
+                <p><strong>Determinant value: {imgOpScalar.toFixed(4)}</strong></p>
+              )}
+              <p>
+                <a
+                  href={getResultBundleDownloadUrl(imgOpResult.job_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download ZIP bundle
+                </a>
+              </p>
+              <ul>
+                {Object.entries(imgOpResult.artifacts).map(([key, value]) => (
+                  <li key={key}>
+                    <a href={value} target="_blank" rel="noreferrer">
+                      {key}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div className="preview-grid">
+                {Object.entries(imgOpResult.artifacts)
+                  .filter(([, value]) => isImageArtifact(value))
+                  .map(([key, value]) => (
+                    <figure key={key} className="preview-card">
+                      <img src={value} alt={key} />
+                      <figcaption>{key}</figcaption>
+                    </figure>
+                  ))}
+              </div>
+            </div>
           </div>
         )}
       </section>

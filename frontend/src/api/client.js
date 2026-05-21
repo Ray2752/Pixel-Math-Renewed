@@ -107,6 +107,30 @@ export async function sumImagesComposition({
   };
 }
 
+export async function runImageOperation({ operation, file, pixelSize, colorLevels }) {
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("pixel_size", String(pixelSize));
+  formData.append("color_levels", String(colorLevels));
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/operations/image/${operation}`,
+    { method: "POST", body: formData }
+  );
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Image operation failed");
+
+  return {
+    ...data,
+    artifacts: Object.fromEntries(
+      Object.entries(data.artifacts || {}).map(([k, v]) => [
+        k,
+        v.startsWith("http") ? v : `${API_BASE_URL}${v}`,
+      ])
+    ),
+  };
+}
+
 export async function getJobStatus(jobId) {
   const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
   const data = await response.json();

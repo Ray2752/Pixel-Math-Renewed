@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Annotated, Any
 import zipfile
 
+import numpy as np
+import pandas as pd
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -80,6 +83,12 @@ def validate_uploaded_image(content: bytes, filename: str) -> tuple[int, int]:
 
 def save_upload(content: bytes, destination: Path) -> None:
     destination.write_bytes(content)
+
+
+def make_square(source: Path, dest: Path) -> None:
+    with Image.open(source) as img:
+        side = min(img.size)
+        img.crop((0, 0, side, side)).save(dest)
 
 
 def run_filter_pipeline(
@@ -259,6 +268,229 @@ def transpose_operation(payload: OperationRequest) -> OperationResponse:
         operation="transpose",
         result_matrix=result_matrix,
     )
+
+
+def _image_operation_common(
+    *,
+    job_dir: Path,
+    job_id: str,
+    source_path: Path,
+    pixel_size: int,
+    color_levels: int,
+    needs_square: bool,
+) -> dict[str, Any]:
+    """Run filter pipeline on source_path (auto-squaring if needed) and return raw outputs."""
+    pipeline_source = source_path
+    if needs_square:
+        with Image.open(source_path) as _img:
+            is_square = _img.size[0] == _img.size[1]
+        if not is_square:
+            square_path = job_dir / f"source_square{source_path.suffix}"
+            make_square(source_path, square_path)
+            pipeline_source = square_path
+
+    return run_filter_pipeline(
+        source_path=pipeline_source,
+        job_dir=job_dir,
+        token=job_id,
+        pixel_size=pixel_size,
+        color_levels=color_levels,
+        numero_inicial=1,
+        numeromaxpaisa=0,
+    )
+
+
+def _build_image_op_artifacts(
+    job_id: str,
+    source_path: Path,
+    filter_outputs: dict[str, Any],
+    result_image: Path,
+    result_numeric_preview: Path,
+    bundle_path: Path,
+) -> dict[str, str]:
+    return {
+        "source": as_artifact_url(job_id, source_path),
+        "pixel_art": as_artifact_url(job_id, filter_outputs["pixel_path"]),
+        "numeric_matrix_xlsx": as_artifact_url(job_id, filter_outputs["matrix_xlsx"]),
+        "color_map_xlsx": as_artifact_url(job_id, filter_outputs["color_map_xlsx"]),
+        "numeric_matrix_preview": as_artifact_url(job_id, filter_outputs["numeric_preview"]),
+        "result_image": as_artifact_url(job_id, result_image),
+        "result_numeric_preview": as_artifact_url(job_id, result_numeric_preview),
+        "bundle_zip": as_artifact_url(job_id, bundle_path),
+    }
+
+
+@app.post(
+    f"{settings.api_prefix}/operations/image/transpose",
+    response_model=FilterProcessResponse,
+)
+async def transpose_image_operation(
+    image: Annotated[UploadFile, File(...)],
+    pixel_size: Annotated[int, Form(...)] = 10,
+    color_levels: Annotated[int, Form(...)] = 64,
+) -> FilterProcessResponse:
+    if pixel_size < 1 or pixel_size > 64:
+        raise HTTPException(status_code=400, detail="pixel_size must be between 1 and 64")
+    if color_levels < 2 or color_levels > 256:
+        raise HTTPException(status_code=400, detail="color_levels must be between 2 and 256")
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+
+    job_id = matrix_service.generate_job_id("transimg")
+    job_dir = ARTIFACTS_ROOT / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    content = await image.read()
+    if len(content) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    extension = Path(image.filename or "input.png").suffix or ".png"
+    source_path = job_dir / f"source{extension}"
+    validate_uploaded_image(content, image.filename or "image")
+    save_upload(content, source_path)
+
+    try:
+        filter_outputs = _image_operation_common(
+            job_dir=job_dir, job_id=job_id, source_path=source_path,
+            pixel_size=pixel_size, color_levels=color_levels, needs_square=False,
+        )
+        matrix_data = pd.read_excel(str(filter_outputs["matrix_xlsx"]), header=None).values.tolist()
+        result_matrix = matrix_service.transpose_matrix(matrix_data)
+
+        result_image = job_dir / f"{job_id}_result_image.png"
+        result_numeric_preview = job_dir / f"{job_id}_result_numeric_preview.png"
+        CrearImagenesFinales(
+            MatrizProcesada=np.array(result_matrix),
+            RutaImgNumFinal=str(result_numeric_preview),
+            RutaImgFinal=str(result_image),
+            MapeoColor=filter_outputs["numero_a_color"],
+        )
+        bundle_path = build_zip_bundle(job_id, job_dir)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Transpose image operation failed: {exc}") from exc
+
+    artifacts = _build_image_op_artifacts(
+        job_id, source_path, filter_outputs, result_image, result_numeric_preview, bundle_path
+    )
+    store_job(job_id=job_id, status="completed", progress=100,
+              message="Transpose image operation completed.",
+              artifacts=artifacts, result={"operation": "transpose_image"}, job_dir=job_dir)
+    return FilterProcessResponse(job_id=job_id, status="completed", artifacts=artifacts)
+
+
+@app.post(
+    f"{settings.api_prefix}/operations/image/rotate",
+    response_model=FilterProcessResponse,
+)
+async def rotate_image_operation(
+    image: Annotated[UploadFile, File(...)],
+    pixel_size: Annotated[int, Form(...)] = 10,
+    color_levels: Annotated[int, Form(...)] = 64,
+) -> FilterProcessResponse:
+    if pixel_size < 1 or pixel_size > 64:
+        raise HTTPException(status_code=400, detail="pixel_size must be between 1 and 64")
+    if color_levels < 2 or color_levels > 256:
+        raise HTTPException(status_code=400, detail="color_levels must be between 2 and 256")
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+
+    job_id = matrix_service.generate_job_id("rotimg")
+    job_dir = ARTIFACTS_ROOT / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    content = await image.read()
+    if len(content) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    extension = Path(image.filename or "input.png").suffix or ".png"
+    source_path = job_dir / f"source{extension}"
+    validate_uploaded_image(content, image.filename or "image")
+    save_upload(content, source_path)
+
+    try:
+        filter_outputs = _image_operation_common(
+            job_dir=job_dir, job_id=job_id, source_path=source_path,
+            pixel_size=pixel_size, color_levels=color_levels, needs_square=True,
+        )
+        matrix_data = pd.read_excel(str(filter_outputs["matrix_xlsx"]), header=None).values.tolist()
+        result_matrix = matrix_service.rotate_matrix(matrix_data)
+
+        result_image = job_dir / f"{job_id}_result_image.png"
+        result_numeric_preview = job_dir / f"{job_id}_result_numeric_preview.png"
+        CrearImagenesFinales(
+            MatrizProcesada=np.array(result_matrix),
+            RutaImgNumFinal=str(result_numeric_preview),
+            RutaImgFinal=str(result_image),
+            MapeoColor=filter_outputs["numero_a_color"],
+        )
+        bundle_path = build_zip_bundle(job_id, job_dir)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Rotate image operation failed: {exc}") from exc
+
+    artifacts = _build_image_op_artifacts(
+        job_id, source_path, filter_outputs, result_image, result_numeric_preview, bundle_path
+    )
+    store_job(job_id=job_id, status="completed", progress=100,
+              message="Rotate image operation completed.",
+              artifacts=artifacts, result={"operation": "rotate_image"}, job_dir=job_dir)
+    return FilterProcessResponse(job_id=job_id, status="completed", artifacts=artifacts)
+
+
+@app.post(
+    f"{settings.api_prefix}/operations/image/determinant",
+    response_model=FilterProcessResponse,
+)
+async def determinant_image_operation(
+    image: Annotated[UploadFile, File(...)],
+    pixel_size: Annotated[int, Form(...)] = 10,
+    color_levels: Annotated[int, Form(...)] = 64,
+) -> FilterProcessResponse:
+    if pixel_size < 1 or pixel_size > 64:
+        raise HTTPException(status_code=400, detail="pixel_size must be between 1 and 64")
+    if color_levels < 2 or color_levels > 256:
+        raise HTTPException(status_code=400, detail="color_levels must be between 2 and 256")
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+
+    job_id = matrix_service.generate_job_id("detimg")
+    job_dir = ARTIFACTS_ROOT / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    content = await image.read()
+    if len(content) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    extension = Path(image.filename or "input.png").suffix or ".png"
+    source_path = job_dir / f"source{extension}"
+    validate_uploaded_image(content, image.filename or "image")
+    save_upload(content, source_path)
+
+    try:
+        filter_outputs = _image_operation_common(
+            job_dir=job_dir, job_id=job_id, source_path=source_path,
+            pixel_size=pixel_size, color_levels=color_levels, needs_square=True,
+        )
+        matrix_data = pd.read_excel(str(filter_outputs["matrix_xlsx"]), header=None).values.tolist()
+        result_matrix, scalar_result, warnings = matrix_service.determinant(matrix_data)
+
+        result_image = job_dir / f"{job_id}_result_image.png"
+        result_numeric_preview = job_dir / f"{job_id}_result_numeric_preview.png"
+        CrearImagenesFinales(
+            MatrizProcesada=np.array(result_matrix),
+            RutaImgNumFinal=str(result_numeric_preview),
+            RutaImgFinal=str(result_image),
+            MapeoColor=filter_outputs["numero_a_color"],
+        )
+        bundle_path = build_zip_bundle(job_id, job_dir)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Determinant image operation failed: {exc}") from exc
+
+    artifacts = _build_image_op_artifacts(
+        job_id, source_path, filter_outputs, result_image, result_numeric_preview, bundle_path
+    )
+    store_job(job_id=job_id, status="completed", progress=100,
+              message="Determinant image operation completed.",
+              artifacts=artifacts,
+              result={"operation": "determinant_image", "scalar_result": scalar_result, "warnings": warnings},
+              job_dir=job_dir)
+    return FilterProcessResponse(job_id=job_id, status="completed", artifacts=artifacts)
 
 
 @app.post(f"{settings.api_prefix}/filters/process", response_model=FilterProcessResponse)
