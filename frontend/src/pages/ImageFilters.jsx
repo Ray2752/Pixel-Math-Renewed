@@ -7,6 +7,7 @@ import {
 } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import MatrixTerminalView from "../components/MatrixTerminalView";
@@ -14,8 +15,9 @@ import PalettePreview from "../components/PalettePreview";
 import UploadZone from "../components/UploadZone";
 
 export default function ImageFilters() {
-  const [pixelSize, setPixelSize] = useState(10);
-  const [colorLevels, setColorLevels] = useState(64);
+  const { settings, t } = useSettings();
+  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
+  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
   const [terminalMatrix, setTerminalMatrix] = useState(null);
 
   const { file, dimensions, error: uploadError, handleFile, reset: resetUpload } =
@@ -35,7 +37,7 @@ export default function ImageFilters() {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!file) {
-      setError("Select an image file first.");
+      setError(t("shared.selectImageFirst"));
       return;
     }
     await run(processFilters({ file, pixelSize, colorLevels }));
@@ -44,8 +46,8 @@ export default function ImageFilters() {
   function handleReset() {
     resetUpload();
     resetJob();
-    setPixelSize(10);
-    setColorLevels(64);
+    setPixelSize(settings.pixelSize);
+    setColorLevels(settings.colorLevels);
   }
 
   async function handleExportJson() {
@@ -57,42 +59,39 @@ export default function ImageFilters() {
   return (
     <div>
       <div className="page-header">
-        <h1>Pixelation Pipeline</h1>
-        <p>
-          Configure source parameters to generate discrete numeric approximations of an image
-          through color quantization and downsampling.
-        </p>
+        <h1>{t("filters.title")}</h1>
+        <p>{t("filters.subtitle")}</p>
       </div>
 
       <div className="workspace-grid">
         <section className="panel">
           <h3 className="result-subtitle" style={{ marginTop: 0 }}>
-            Parameters
+            {t("filters.paramsTitle")}
           </h3>
           <form onSubmit={handleSubmit} className="form-grid">
             <UploadZone
-              label="Load source image"
+              label={t("filters.loadImage")}
               file={file}
               dimensions={dimensions}
               onFile={handleFile}
             />
 
             <RangeField
-              label="Pixel Size"
+              label={t("shared.pixelSize")}
               value={pixelSize}
               min={1}
               max={64}
               onChange={setPixelSize}
             />
             <RangeField
-              label="Color Levels"
+              label={t("shared.colorLevels")}
               value={colorLevels}
               min={2}
               max={256}
               onChange={setColorLevels}
             />
 
-            <button type="submit">Execute Pipeline</button>
+            <button type="submit">{t("filters.execute")}</button>
           </form>
 
           {uploadError && <p className="error">{uploadError}</p>}
@@ -105,7 +104,7 @@ export default function ImageFilters() {
             <section className="panel">
               <p>Job: {result.job_id}</p>
 
-              <h3 className="result-subtitle">Pipeline Stages</h3>
+              <h3 className="result-subtitle">{t("filters.stages")}</h3>
               <div className="preview-grid">
                 {["source", "simplified", "pixel_art"].map((key) =>
                   result.artifacts[key] ? (
@@ -117,7 +116,7 @@ export default function ImageFilters() {
                 )}
                 {result.artifacts.color_map_xlsx && (
                   <div className="preview-card">
-                    <figcaption>Palette</figcaption>
+                    <figcaption>{t("filters.palette")}</figcaption>
                     <PalettePreview jobId={result.job_id} artifactKey="color_map_xlsx" />
                   </div>
                 )}
@@ -125,7 +124,7 @@ export default function ImageFilters() {
 
               {terminalMatrix && (
                 <>
-                  <h3 className="result-subtitle">Data Output Array</h3>
+                  <h3 className="result-subtitle">{t("filters.dataArray")}</h3>
                   <MatrixTerminalView rows={terminalMatrix.rows} shape={terminalMatrix.shape} />
                 </>
               )}
@@ -136,33 +135,33 @@ export default function ImageFilters() {
                 {result.artifacts.pixel_art && (
                   <a href={result.artifacts.pixel_art} download>
                     <button type="button" className="btn-secondary">
-                      Export PNG
+                      {t("filters.exportPng")}
                     </button>
                   </a>
                 )}
                 <button type="button" className="btn-secondary" onClick={handleExportJson}>
-                  Export JSON Array
+                  {t("filters.exportJson")}
                 </button>
                 <button type="button" className="btn-secondary" onClick={handleReset}>
-                  Reset Pipeline
+                  {t("filters.reset")}
                 </button>
                 <a
                   href={getResultBundleDownloadUrl(result.job_id)}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Download ZIP bundle
+                  {t("shared.downloadZip")}
                 </a>
               </div>
 
-              <h3 className="result-subtitle">All Artifacts</h3>
+              <h3 className="result-subtitle">{t("filters.allArtifacts")}</h3>
               <ArtifactDownloads jobId={result.job_id} artifacts={result.artifacts} />
             </section>
           ) : (
             <div className="empty-state">
               <span className="upload-zone-icon">⌗</span>
-              <p>Run the pipeline to see its stages</p>
-              <p className="meta-text">Awaiting dataset input…</p>
+              <p>{t("filters.emptyTitle")}</p>
+              <p className="meta-text">{t("filters.emptyHint")}</p>
             </div>
           )}
         </div>

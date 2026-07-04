@@ -2,16 +2,18 @@ import { useState } from "react";
 import { getResultBundleDownloadUrl, sumImagesComposition } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import MatrixInspector from "../components/MatrixInspector";
 import UploadZone from "../components/UploadZone";
 
 export default function ImageComposition() {
-  const [pixelSize, setPixelSize] = useState(10);
-  const [colorLevels, setColorLevels] = useState(64);
-  const [alpha, setAlpha] = useState(0.7);
-  const [beta, setBeta] = useState(0.3);
+  const { settings, t } = useSettings();
+  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
+  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
+  const [alpha, setAlpha] = useState(settings.alpha);
+  const [beta, setBeta] = useState(settings.beta);
 
   const landscape = useImageUpload();
   const character = useImageUpload();
@@ -27,11 +29,11 @@ export default function ImageComposition() {
     event.preventDefault();
 
     if (!landscape.file || !character.file) {
-      setError("Select both landscape and character images.");
+      setError(t("composition.selectBoth"));
       return;
     }
     if (hasDimensionMismatch) {
-      setError("Images must have exactly the same dimensions.");
+      setError(t("composition.sameDimensions"));
       return;
     }
 
@@ -54,21 +56,21 @@ export default function ImageComposition() {
     <div>
       <div className="page-header">
         <h1>
-          Image Composition <span style={{ color: "var(--color-primary-light)" }}>_SUM</span>
+          {t("composition.title")}{" "}
+          <span style={{ color: "var(--color-primary-light)" }}>
+            {t("composition.titleSuffix")}
+          </span>
         </h1>
-        <p>
-          Combine two image matrices through weighted element-wise addition. Adjust the blend
-          weights to control how much each source contributes.
-        </p>
+        <p>{t("composition.subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="composition-inputs">
         <section className="panel">
           <h3 className="result-subtitle" style={{ marginTop: 0 }}>
-            Landscape [A]
+            {t("composition.landscape")}
           </h3>
           <UploadZone
-            label="Base image"
+            label={t("composition.baseImage")}
             file={landscape.file}
             dimensions={landscape.dimensions}
             onFile={landscape.handleFile}
@@ -77,10 +79,10 @@ export default function ImageComposition() {
 
         <section className="panel">
           <h3 className="result-subtitle" style={{ marginTop: 0 }}>
-            Character [B]
+            {t("composition.character")}
           </h3>
           <UploadZone
-            label="Overlay image"
+            label={t("composition.overlayImage")}
             file={character.file}
             dimensions={character.dimensions}
             onFile={character.handleFile}
@@ -89,25 +91,25 @@ export default function ImageComposition() {
 
         <section className="panel">
           <h3 className="result-subtitle" style={{ marginTop: 0 }}>
-            Composition Settings
+            {t("composition.settingsTitle")}
           </h3>
           <div className="form-grid">
             <RangeField
-              label="Pixel Size"
+              label={t("shared.pixelSize")}
               value={pixelSize}
               min={1}
               max={64}
               onChange={setPixelSize}
             />
             <RangeField
-              label="Color Levels"
+              label={t("shared.colorLevels")}
               value={colorLevels}
               min={2}
               max={256}
               onChange={setColorLevels}
             />
             <RangeField
-              label="Weight α [Landscape]"
+              label={t("composition.weightAlpha")}
               value={alpha}
               min={0}
               max={1}
@@ -115,7 +117,7 @@ export default function ImageComposition() {
               onChange={setAlpha}
             />
             <RangeField
-              label="Weight β [Character]"
+              label={t("composition.weightBeta")}
               value={beta}
               min={0}
               max={1}
@@ -126,17 +128,13 @@ export default function ImageComposition() {
               C = {alpha.toFixed(2)}·A + {beta.toFixed(2)}·B
             </p>
             <button type="submit" disabled={hasDimensionMismatch}>
-              Compute Sum
+              {t("composition.computeSum")}
             </button>
           </div>
         </section>
       </form>
 
-      {hasDimensionMismatch && (
-        <p className="warn-text">
-          Dimension mismatch detected. Select files with the same width and height.
-        </p>
-      )}
+      {hasDimensionMismatch && <p className="warn-text">{t("composition.dimensionMismatch")}</p>}
       {landscape.error && <p className="error">{landscape.error}</p>}
       {character.error && <p className="error">{character.error}</p>}
       {error && <p className="error">{error}</p>}
@@ -150,11 +148,11 @@ export default function ImageComposition() {
           </p>
           <p>
             <a href={getResultBundleDownloadUrl(result.job_id)} target="_blank" rel="noreferrer">
-              Download ZIP bundle
+              {t("shared.downloadZip")}
             </a>
           </p>
 
-          <h3 className="result-subtitle">Individual Matrices</h3>
+          <h3 className="result-subtitle">{t("composition.individualMatrices")}</h3>
           <div className="preview-grid">
             {["landscape_pixel", "landscape_numeric_preview", "character_pixel", "character_numeric_preview"].map(
               (key) =>
@@ -179,7 +177,7 @@ export default function ImageComposition() {
             ]}
           />
 
-          <h3 className="result-subtitle">Final Composition</h3>
+          <h3 className="result-subtitle">{t("composition.finalComposition")}</h3>
           <div className="preview-grid">
             {["sum_final_image", "sum_numeric_preview"].map((key) =>
               result.artifacts[key] ? (

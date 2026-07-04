@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { waitForJobCompletion } from "../api/client";
+import { useSettings } from "../context/SettingsContext";
 
 export function useJobSubmit() {
+  const { t } = useSettings();
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [jobStatus, setJobStatus] = useState("");
@@ -13,11 +15,11 @@ export function useJobSubmit() {
 
     try {
       const kickoff = await kickoffPromise;
-      setJobStatus(`Job ${kickoff.job_id} running...`);
+      setJobStatus(t("shared.jobRunning", kickoff.job_id));
       const completed = await waitForJobCompletion(kickoff.job_id);
       setResult(completed);
       onComplete?.(completed);
-      setJobStatus(`Job ${kickoff.job_id} completed.`);
+      setJobStatus(t("shared.jobCompleted", kickoff.job_id));
     } catch (err) {
       setError(err.message);
     }

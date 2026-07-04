@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { getMatrixCsvUrl, getMatrixData } from "../api/client";
+import { useSettings } from "../context/SettingsContext";
 import { isImageArtifact } from "../utils/artifacts";
 import MatrixTable from "./MatrixTable";
+import MatrixTerminalView from "./MatrixTerminalView";
 
-export default function ArtifactDownloads({
-  jobId,
-  artifacts,
-  keys,
-  MatrixViewComponent = MatrixTable,
-}) {
+export default function ArtifactDownloads({ jobId, artifacts, keys, MatrixViewComponent }) {
+  const { settings, t } = useSettings();
   const [matrixView, setMatrixView] = useState(null);
+
+  const ViewComponent =
+    MatrixViewComponent ??
+    (settings.matrixView === "terminal" ? MatrixTerminalView : MatrixTable);
 
   const entries = (keys || Object.keys(artifacts)).filter((key) => artifacts[key]);
 
@@ -46,7 +48,7 @@ export default function ArtifactDownloads({
                   className="btn-view-matrix"
                   onClick={() => handleToggleMatrix(key)}
                 >
-                  {matrixView?.key === key ? "Hide" : "View"}
+                  {matrixView?.key === key ? t("shared.hide") : t("shared.view")}
                 </button>
                 <a href={getMatrixCsvUrl(jobId, key)} download>
                   CSV
@@ -59,9 +61,9 @@ export default function ArtifactDownloads({
       {matrixView && (
         <div className="matrix-viewer">
           {matrixView.rows ? (
-            <MatrixViewComponent rows={matrixView.rows} shape={matrixView.shape} />
+            <ViewComponent rows={matrixView.rows} shape={matrixView.shape} />
           ) : (
-            <p className="error">Could not load matrix.</p>
+            <p className="error">{t("shared.couldNotLoadMatrix")}</p>
           )}
         </div>
       )}

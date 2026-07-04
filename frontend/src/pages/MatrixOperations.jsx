@@ -2,15 +2,17 @@ import { useState } from "react";
 import { runImageOperation, getResultBundleDownloadUrl } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import UploadZone from "../components/UploadZone";
 import { isImageArtifact } from "../utils/artifacts";
 
 export default function MatrixOperations() {
+  const { settings, t } = useSettings();
   const [operation, setOperation] = useState("transpose");
-  const [pixelSize, setPixelSize] = useState(10);
-  const [colorLevels, setColorLevels] = useState(64);
+  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
+  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
   const [scalar, setScalar] = useState(null);
 
   const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
@@ -24,7 +26,7 @@ export default function MatrixOperations() {
     setScalar(null);
 
     if (!file) {
-      setError("Select an image file first.");
+      setError(t("shared.selectImageFirst"));
       return;
     }
 
@@ -40,30 +42,27 @@ export default function MatrixOperations() {
   return (
     <div>
       <div className="page-header">
-        <h1>Matrix Operations</h1>
-        <p>
-          Execute linear algebraic transformations on image data. Select an operation and upload
-          a source image for processing.
-        </p>
+        <h1>{t("matrixOps.title")}</h1>
+        <p>{t("matrixOps.subtitle")}</p>
       </div>
 
       <div className="workspace-grid">
         <section className="panel">
           <h3 className="result-subtitle" style={{ marginTop: 0 }}>
-            Operation Config
+            {t("matrixOps.configTitle")}
           </h3>
           <form onSubmit={handleSubmit} className="form-grid">
             <label>
-              Operation
+              {t("matrixOps.operation")}
               <select value={operation} onChange={(event) => setOperation(event.target.value)}>
-                <option value="transpose">Transpose</option>
-                <option value="rotate">Rotate</option>
-                <option value="determinant">Determinant</option>
+                <option value="transpose">{t("matrixOps.transpose")}</option>
+                <option value="rotate">{t("matrixOps.rotate")}</option>
+                <option value="determinant">{t("matrixOps.determinant")}</option>
               </select>
             </label>
 
             <UploadZone
-              label="Source image"
+              label={t("matrixOps.sourceImage")}
               file={file}
               dimensions={dimensions}
               onFile={handleFile}
@@ -71,28 +70,26 @@ export default function MatrixOperations() {
 
             {needsSquare && isNonSquare && (
               <p className="warn-text">
-                Image is not square — it will be auto-cropped to{" "}
-                {Math.min(dimensions.width, dimensions.height)}×
-                {Math.min(dimensions.width, dimensions.height)} before processing.
+                {t("matrixOps.nonSquareWarn", Math.min(dimensions.width, dimensions.height))}
               </p>
             )}
 
             <RangeField
-              label="Pixel Size"
+              label={t("shared.pixelSize")}
               value={pixelSize}
               min={1}
               max={64}
               onChange={setPixelSize}
             />
             <RangeField
-              label="Color Levels"
+              label={t("shared.colorLevels")}
               value={colorLevels}
               min={2}
               max={256}
               onChange={setColorLevels}
             />
 
-            <button type="submit">Execute Computation</button>
+            <button type="submit">{t("matrixOps.execute")}</button>
           </form>
 
           {uploadError && <p className="error">{uploadError}</p>}
@@ -106,7 +103,7 @@ export default function MatrixOperations() {
               <p>Job: {result.job_id}</p>
               {scalar != null && (
                 <div className="scalar-result">
-                  <span className="scalar-result-label">Scalar Determinant Result</span>
+                  <span className="scalar-result-label">{t("matrixOps.scalarLabel")}</span>
                   <span className="scalar-result-value">det(A) = {scalar.toFixed(4)}</span>
                 </div>
               )}
@@ -116,7 +113,7 @@ export default function MatrixOperations() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Download ZIP bundle
+                  {t("shared.downloadZip")}
                 </a>
               </p>
 
@@ -136,8 +133,8 @@ export default function MatrixOperations() {
           ) : (
             <div className="empty-state">
               <span className="upload-zone-icon">⌗</span>
-              <p>Upload an image to see matrix results</p>
-              <p className="meta-text">Awaiting dataset input…</p>
+              <p>{t("matrixOps.emptyTitle")}</p>
+              <p className="meta-text">{t("matrixOps.emptyHint")}</p>
             </div>
           )}
         </div>

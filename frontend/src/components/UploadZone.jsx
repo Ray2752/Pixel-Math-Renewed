@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
+import { useSettings } from "../context/SettingsContext";
 import { formatDimensions } from "../utils/artifacts";
 
-export default function UploadZone({ label, file, dimensions, onFile, hint = "PNG, JPG or WebP" }) {
+export default function UploadZone({ label, file, dimensions, onFile }) {
+  const { t } = useSettings();
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -49,12 +51,14 @@ export default function UploadZone({ label, file, dimensions, onFile, hint = "PN
         {file ? (
           <>
             <p className="upload-zone-text">{file.name}</p>
-            <span className="upload-zone-badge">Current input: [{formatDimensions(dimensions)}]</span>
+            <span className="upload-zone-badge">
+              {t("upload.currentInput")} [{formatDimensions(dimensions)}]
+            </span>
           </>
         ) : (
           <>
-            <p className="upload-zone-text">Drag &amp; drop an image</p>
-            <p className="upload-zone-hint">{hint} — or click to browse</p>
+            <p className="upload-zone-text">{t("upload.dragDrop")}</p>
+            <p className="upload-zone-hint">{t("upload.hint")}</p>
           </>
         )}
       </div>

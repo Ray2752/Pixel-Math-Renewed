@@ -1,12 +1,15 @@
 import { NavLink } from "react-router-dom";
+import { useSettings } from "../context/SettingsContext";
 
 const NAV_LINKS = [
-  { to: "/matrix-operations", label: "Matrix Operations" },
-  { to: "/image-filters", label: "Image Filters" },
-  { to: "/image-composition", label: "Image Composition" },
+  { to: "/matrix-operations", labelKey: "nav.matrixOps" },
+  { to: "/image-filters", labelKey: "nav.imageFilters" },
+  { to: "/image-composition", labelKey: "nav.imageComposition" },
 ];
 
 export default function Sidebar() {
+  const { t } = useSettings();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -25,14 +28,14 @@ export default function Sidebar() {
               isActive ? "sidebar-nav-link active" : "sidebar-nav-link"
             }
           >
-            {link.label}
+            {t(link.labelKey)}
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <NavLink to="/settings">Settings</NavLink>
-        <NavLink to="/documentation">Documentation</NavLink>
+        <NavLink to="/settings">{t("nav.settings")}</NavLink>
+        <NavLink to="/documentation">{t("nav.documentation")}</NavLink>
       </div>
     </aside>
   );

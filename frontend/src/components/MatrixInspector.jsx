@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMatrixData } from "../api/client";
+import { useSettings } from "../context/SettingsContext";
 
 function centerSlice(rows, height = 2, width = 3) {
   if (!rows?.length) return [];
@@ -26,6 +27,7 @@ function MiniMatrix({ cells, weight, tone }) {
 }
 
 export default function MatrixInspector({ jobId, alpha, beta }) {
+  const { t } = useSettings();
   const [slices, setSlices] = useState(null);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function MatrixInspector({ jobId, alpha, beta }) {
 
   return (
     <div>
-      <h3 className="result-subtitle">Matrix Inspector [Center Crop]</h3>
+      <h3 className="result-subtitle">{t("composition.matrixInspector")}</h3>
       <div className="matrix-inspector">
         <MiniMatrix cells={slices.a} weight={`×${alpha}`} tone="a" />
         <span className="matrix-inspector-op">+</span>

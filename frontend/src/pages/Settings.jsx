@@ -1,42 +1,122 @@
 import { useEffect, useState } from "react";
 import { getHealth } from "../api/client";
+import { useSettings } from "../context/SettingsContext";
+import RangeField from "../components/RangeField";
 
 export default function Settings() {
+  const { settings, update, restoreDefaults, t } = useSettings();
   const [health, setHealth] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     getHealth()
-      .then(setHealth)
+      .then((data) => {
+        setHealth(data);
+        setError("");
+      })
       .catch(() =>
         setError(
           import.meta.env.DEV
-            ? "Backend unavailable. Start the FastAPI server on port 8000."
-            : "Backend unavailable. The server may be waking up — try again in a moment."
+            ? t("settings.backendUnavailableDev")
+            : t("settings.backendUnavailableProd")
         )
       );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div>
       <div className="page-header">
-        <h1>Settings</h1>
-        <p>System information for the Pixel-Math API backend.</p>
+        <h1>{t("settings.title")}</h1>
+        <p>{t("settings.subtitle")}</p>
       </div>
 
       <section className="panel">
-        <h2>API Status</h2>
+        <h2>{t("settings.language")}</h2>
+        <div className="form-grid" style={{ marginTop: "1rem", maxWidth: "20rem" }}>
+          <select
+            value={settings.language}
+            onChange={(event) => update({ language: event.target.value })}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>{t("settings.defaultParams")}</h2>
+        <p className="meta-text" style={{ marginTop: "0.5rem" }}>
+          {t("settings.defaultParamsHint")}
+        </p>
+        <div className="form-grid" style={{ marginTop: "1rem" }}>
+          <RangeField
+            label={t("shared.pixelSize")}
+            value={settings.pixelSize}
+            min={1}
+            max={64}
+            onChange={(value) => update({ pixelSize: value })}
+          />
+          <RangeField
+            label={t("shared.colorLevels")}
+            value={settings.colorLevels}
+            min={2}
+            max={256}
+            onChange={(value) => update({ colorLevels: value })}
+          />
+          <RangeField
+            label={t("composition.weightAlpha")}
+            value={settings.alpha}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(value) => update({ alpha: value })}
+          />
+          <RangeField
+            label={t("composition.weightBeta")}
+            value={settings.beta}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(value) => update({ beta: value })}
+          />
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>{t("settings.matrixViewer")}</h2>
+        <div className="form-grid" style={{ marginTop: "1rem", maxWidth: "20rem" }}>
+          <select
+            value={settings.matrixView}
+            onChange={(event) => update({ matrixView: event.target.value })}
+          >
+            <option value="table">{t("settings.matrixViewerTable")}</option>
+            <option value="terminal">{t("settings.matrixViewerTerminal")}</option>
+          </select>
+        </div>
+        <div style={{ marginTop: "1.25rem" }}>
+          <button type="button" className="btn-secondary" onClick={restoreDefaults}>
+            {t("settings.restore")}
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>{t("settings.apiStatus")}</h2>
         {error && <p className="error">{error}</p>}
         {health && (
           <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>
-            <p className="meta-text">Status: {health.status}</p>
-            <p className="meta-text">Environment: {health.environment}</p>
-            <p className="meta-text">Version: {health.version}</p>
+            <p className="meta-text">
+              {t("settings.apiStatusLabel")}: {health.status}
+            </p>
+            <p className="meta-text">
+              {t("settings.apiEnvironment")}: {health.environment}
+            </p>
+            <p className="meta-text">
+              {t("settings.apiVersion")}: {health.version}
+            </p>
           </div>
         )}
-        <p className="meta-text" style={{ marginTop: "1.5rem" }}>
-          There are no user-configurable settings yet.
-        </p>
       </section>
     </div>
   );
