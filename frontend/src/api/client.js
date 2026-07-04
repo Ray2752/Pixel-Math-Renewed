@@ -79,12 +79,16 @@ export async function sumImagesComposition({
   characterFile,
   pixelSize,
   colorLevels,
+  alpha,
+  beta,
 }) {
   const formData = new FormData();
   formData.append("landscape_image", landscapeFile);
   formData.append("character_image", characterFile);
   formData.append("pixel_size", String(pixelSize));
   formData.append("color_levels", String(colorLevels));
+  formData.append("alpha", String(alpha));
+  formData.append("beta", String(beta));
 
   const response = await fetch(`${API_BASE_URL}/api/v1/compositions/sum-images`, {
     method: "POST",
@@ -169,6 +173,33 @@ export async function getMatrixData(jobId, artifactKey) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.detail || "Could not load matrix");
   return data;
+}
+
+export function getMatrixCsvUrl(jobId, artifactKey) {
+  return `${API_BASE_URL}/api/v1/results/${jobId}/csv/${artifactKey}`;
+}
+
+export async function getPalette(jobId, artifactKey) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/results/${jobId}/palette/${artifactKey}`
+  );
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Could not load palette");
+  return data;
+}
+
+export function downloadMatrixAsJson(matrixData, filename) {
+  const blob = new Blob([JSON.stringify(matrixData.rows, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
 
 export async function waitForJobCompletion(jobId, maxAttempts = 25) {

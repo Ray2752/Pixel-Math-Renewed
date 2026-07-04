@@ -1,3 +1,4 @@
+import ast
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -15,7 +16,7 @@ import pandas as pd
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
@@ -595,7 +596,15 @@ async def sum_images_composition(
     character_image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
     color_levels: Annotated[int, Form(...)] = 64,
+    alpha: Annotated[float, Form(...)] = 0.7,
+    beta: Annotated[float, Form(...)] = 0.3,
 ) -> FilterProcessResponse:
+    if alpha < 0.0 or alpha > 1.0:
+        raise HTTPException(status_code=400, detail="alpha must be between 0.0 and 1.0")
+
+    if beta < 0.0 or beta > 1.0:
+        raise HTTPException(status_code=400, detail="beta must be between 0.0 and 1.0")
+
     if pixel_size < 1 or pixel_size > 64:
         raise HTTPException(status_code=400, detail="pixel_size must be between 1 and 64")
 
@@ -668,7 +677,7 @@ async def sum_images_composition(
             pixel_size=pixel_size,
             color_levels=color_levels,
             numero_inicial=1,
-            numeromaxpaisa=landscape_outputs["numero_max"],
+            numeromaxpaisa=0,
         )
 
         sum_base = job_dir / "sum_matrix"
@@ -679,6 +688,8 @@ async def sum_images_composition(
             colores_personaje=character_outputs["numero_a_color"],
             nummaxpaisa=landscape_outputs["numero_max"],
             ruta_excel_suma=str(sum_base),
+            alpha=alpha,
+            beta=beta,
         )
 
         sum_numeric_preview = job_dir / "sum_numeric_preview.png"
@@ -718,7 +729,7 @@ async def sum_images_composition(
         progress=100,
         message="Image composition sum completed.",
         artifacts=artifacts,
-        result={"operation": "sum_images"},
+        result={"operation": "sum_images", "alpha": alpha, "beta": beta},
         job_dir=job_dir,
     )
 
@@ -755,23 +766,7 @@ def get_result(job_id: str) -> dict[str, Any]:
 
 @app.get(f"{settings.api_prefix}/results/{{job_id}}/matrix/{{artifact_key}}")
 def view_matrix_data(job_id: str, artifact_key: str) -> dict[str, Any]:
-    job = JOB_STORE.get(job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    artifacts = job.get("artifacts", {})
-    if artifact_key not in artifacts:
-        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_key}' not found")
-
-    artifact_url = artifacts[artifact_key]
-    filename = Path(artifact_url).name
-    file_path = ARTIFACTS_ROOT / job_id / filename
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found on disk")
-
-    if file_path.suffix.lower() != ".xlsx":
-        raise HTTPException(status_code=400, detail="Artifact is not an Excel file")
+    file_path = _resolve_artifact_xlsx(job_id, artifact_key)
 
     try:
         df = pd.read_excel(str(file_path), header=None)
@@ -788,6 +783,66 @@ def view_matrix_data(job_id: str, artifact_key: str) -> dict[str, Any]:
         return {"rows": rows, "shape": [len(rows), len(rows[0]) if rows else 0]}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not read matrix: {exc}") from exc
+
+
+def _resolve_artifact_xlsx(job_id: str, artifact_key: str) -> Path:
+    job = JOB_STORE.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    artifacts = job.get("artifacts", {})
+    if artifact_key not in artifacts:
+        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_key}' not found")
+
+    filename = Path(artifacts[artifact_key]).name
+    file_path = ARTIFACTS_ROOT / job_id / filename
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    if file_path.suffix.lower() != ".xlsx":
+        raise HTTPException(status_code=400, detail="Artifact is not an Excel file")
+
+    return file_path
+
+
+@app.get(f"{settings.api_prefix}/results/{{job_id}}/csv/{{artifact_key}}")
+def download_matrix_csv(job_id: str, artifact_key: str) -> PlainTextResponse:
+    file_path = _resolve_artifact_xlsx(job_id, artifact_key)
+
+    try:
+        df = pd.read_excel(str(file_path), header=None)
+        csv_text = df.to_csv(header=False, index=False)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not convert matrix to CSV: {exc}") from exc
+
+    return PlainTextResponse(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{artifact_key}.csv"'},
+    )
+
+
+@app.get(f"{settings.api_prefix}/results/{{job_id}}/palette/{{artifact_key}}")
+def get_color_palette(job_id: str, artifact_key: str) -> dict[str, Any]:
+    file_path = _resolve_artifact_xlsx(job_id, artifact_key)
+
+    try:
+        df = pd.read_excel(str(file_path))
+        swatches = []
+        for _, row in df.iterrows():
+            numero = row.iloc[0]
+            color_raw = row.iloc[1]
+            try:
+                color = ast.literal_eval(str(color_raw))
+            except (ValueError, SyntaxError):
+                continue
+            swatches.append({"number": int(numero), "rgba": list(color)})
+        return {"swatches": swatches}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not read palette: {exc}") from exc
 
 
 @app.get(f"{settings.api_prefix}/results/{{job_id}}/download")

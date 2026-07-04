@@ -164,6 +164,62 @@ def test_sum_images_composition_success() -> None:
     assert "sum_final_image" in body["artifacts"]
     assert "sum_matrix_xlsx" in body["artifacts"]
 
+    job_id = body["job_id"]
+    result_response = client.get(f"/api/v1/results/{job_id}")
+    assert result_response.status_code == 200
+    result_body = result_response.json()["result"]
+    assert result_body["operation"] == "sum_images"
+    # Defaults from the endpoint signature when alpha/beta aren't supplied.
+    assert result_body["alpha"] == 0.7
+    assert result_body["beta"] == 0.3
+
+
+def test_sum_images_composition_weights_change_result() -> None:
+    output_a = BytesIO()
+    Image.new("RGBA", (4, 4), (200, 0, 0, 255)).save(output_a, format="PNG")
+    output_b = BytesIO()
+    Image.new("RGBA", (4, 4), (0, 0, 200, 255)).save(output_b, format="PNG")
+
+    def _sum_xlsx_bytes(alpha: float, beta: float) -> bytes:
+        response = client.post(
+            "/api/v1/compositions/sum-images",
+            files={
+                "landscape_image": ("landscape.png", output_a.getvalue(), "image/png"),
+                "character_image": ("character.png", output_b.getvalue(), "image/png"),
+            },
+            data={"pixel_size": 2, "color_levels": 64, "alpha": alpha, "beta": beta},
+        )
+        assert response.status_code == 200
+        job_id = response.json()["job_id"]
+        xlsx_response = client.get(f"/api/v1/results/{job_id}/csv/sum_matrix_xlsx")
+        assert xlsx_response.status_code == 200
+        return xlsx_response.content
+
+    # Both source images are a single solid color each, so every non-transparent
+    # cell has the same raw id (1) on both sides. Weight pairs whose alpha+beta
+    # totals differ still round to different summed values even in that case.
+    csv_a = _sum_xlsx_bytes(alpha=0.7, beta=0.3)
+    csv_b = _sum_xlsx_bytes(alpha=0.9, beta=0.9)
+
+    assert csv_a != csv_b
+
+
+def test_sum_images_composition_rejects_out_of_range_alpha() -> None:
+    image_a = _make_test_image_bytes()
+    image_b = _make_test_image_bytes()
+
+    response = client.post(
+        "/api/v1/compositions/sum-images",
+        files={
+            "landscape_image": ("landscape.png", image_a, "image/png"),
+            "character_image": ("character.png", image_b, "image/png"),
+        },
+        data={"pixel_size": 2, "color_levels": 64, "alpha": 1.5},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "alpha must be between 0.0 and 1.0"
+
 
 def test_sum_images_composition_rejects_dimension_mismatch() -> None:
     image_small = _make_test_image_bytes()
@@ -194,3 +250,48 @@ def test_unknown_job_returns_not_found() -> None:
 
     result_response = client.get("/api/v1/results/unknown-job")
     assert result_response.status_code == 404
+
+
+def test_matrix_csv_export_success() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+    job_id = response.json()["job_id"]
+
+    csv_response = client.get(f"/api/v1/results/{job_id}/csv/numeric_matrix_xlsx")
+    assert csv_response.status_code == 200
+    assert csv_response.headers["content-type"].startswith("text/csv")
+    assert len(csv_response.text.strip()) > 0
+
+
+def test_matrix_csv_export_unknown_artifact_returns_404() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+    job_id = response.json()["job_id"]
+
+    csv_response = client.get(f"/api/v1/results/{job_id}/csv/does_not_exist")
+    assert csv_response.status_code == 404
+
+
+def test_palette_endpoint_success() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+    job_id = response.json()["job_id"]
+
+    palette_response = client.get(f"/api/v1/results/{job_id}/palette/color_map_xlsx")
+    assert palette_response.status_code == 200
+    body = palette_response.json()
+    assert "swatches" in body
+    assert len(body["swatches"]) >= 1
+    assert len(body["swatches"][0]["rgba"]) == 4
