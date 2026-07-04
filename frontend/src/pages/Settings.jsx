@@ -8,7 +8,13 @@ export default function Settings() {
   useEffect(() => {
     getHealth()
       .then(setHealth)
-      .catch(() => setError("Backend unavailable. Start the FastAPI server."));
+      .catch(() =>
+        setError(
+          import.meta.env.DEV
+            ? "Backend unavailable. Start the FastAPI server on port 8000."
+            : "Backend unavailable. The server may be waking up — try again in a moment."
+        )
+      );
   }, []);
 
   return (

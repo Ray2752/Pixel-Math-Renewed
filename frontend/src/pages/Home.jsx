@@ -6,6 +6,7 @@ export default function Home() {
   const [status, setStatus] = useState("Checking backend...");
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     getHealth()
       .then((data) => setStatus(`API ${data.status} (${data.environment}) v${data.version}`))
       .catch(() => setStatus("Backend unavailable. Start FastAPI on port 8000."));
@@ -14,8 +15,8 @@ export default function Home() {
   return (
     <div>
       <section className="panel">
-        <div className="status">{status}</div>
-        <div className="page-header" style={{ marginTop: "1rem" }}>
+        {import.meta.env.DEV && <div className="status">{status}</div>}
+        <div className="page-header" style={{ marginTop: import.meta.env.DEV ? "1rem" : 0 }}>
           <h1>
             Visualizing Linear Algebra <span style={{ color: "var(--color-primary-light)" }}>Through Pixels</span>
           </h1>
