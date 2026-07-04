@@ -22,7 +22,8 @@ export default function ImageFilters() {
 
   const { file, dimensions, error: uploadError, handleFile, reset: resetUpload } =
     useImageUpload();
-  const { result, error, jobStatus, run, reset: resetJob, setError } = useJobSubmit();
+  const { result, error, jobStatus, isLoading, isSlow, run, reset: resetJob, setError } =
+    useJobSubmit();
 
   useEffect(() => {
     if (!result) {
@@ -91,12 +92,25 @@ export default function ImageFilters() {
               onChange={setColorLevels}
             />
 
-            <button type="submit">{t("filters.execute")}</button>
+            <button type="submit" disabled={isLoading}>
+              {isLoading && <span className="spinner" />}
+              {t("filters.execute")}
+            </button>
           </form>
 
           {uploadError && <p className="error">{uploadError}</p>}
           {error && <p className="error">{error}</p>}
-          {jobStatus && <p className="job-status">{jobStatus}</p>}
+          {isLoading ? (
+            <div className="loading-box">
+              <span className="spinner" />
+              <span>
+                {t("shared.processing")}
+                {isSlow && <span className="loading-hint"> {t("shared.coldStartHint")}</span>}
+              </span>
+            </div>
+          ) : (
+            jobStatus && <p className="job-status">{jobStatus}</p>
+          )}
         </section>
 
         <div>

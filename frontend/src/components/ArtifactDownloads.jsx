@@ -8,6 +8,7 @@ import MatrixTerminalView from "./MatrixTerminalView";
 export default function ArtifactDownloads({ jobId, artifacts, keys, MatrixViewComponent }) {
   const { settings, t } = useSettings();
   const [matrixView, setMatrixView] = useState(null);
+  const [loadingKey, setLoadingKey] = useState(null);
 
   const ViewComponent =
     MatrixViewComponent ??
@@ -20,11 +21,14 @@ export default function ArtifactDownloads({ jobId, artifacts, keys, MatrixViewCo
       setMatrixView(null);
       return;
     }
+    setLoadingKey(key);
     try {
       const data = await getMatrixData(jobId, key);
       setMatrixView({ key, rows: data.rows, shape: data.shape });
     } catch {
       setMatrixView({ key, rows: null, shape: null });
+    } finally {
+      setLoadingKey(null);
     }
   }
 
@@ -46,9 +50,16 @@ export default function ArtifactDownloads({ jobId, artifacts, keys, MatrixViewCo
                 <button
                   type="button"
                   className="btn-view-matrix"
+                  disabled={loadingKey === key}
                   onClick={() => handleToggleMatrix(key)}
                 >
-                  {matrixView?.key === key ? t("shared.hide") : t("shared.view")}
+                  {loadingKey === key ? (
+                    <span className="spinner" />
+                  ) : matrixView?.key === key ? (
+                    t("shared.hide")
+                  ) : (
+                    t("shared.view")
+                  )}
                 </button>
                 <a href={getMatrixCsvUrl(jobId, key)} download>
                   CSV

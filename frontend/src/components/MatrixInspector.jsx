@@ -29,9 +29,11 @@ function MiniMatrix({ cells, weight, tone }) {
 export default function MatrixInspector({ jobId, alpha, beta }) {
   const { t } = useSettings();
   const [slices, setSlices] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     Promise.all([
       getMatrixData(jobId, "landscape_matrix_xlsx"),
@@ -48,12 +50,26 @@ export default function MatrixInspector({ jobId, alpha, beta }) {
       })
       .catch(() => {
         if (!cancelled) setSlices(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
   }, [jobId]);
+
+  if (loading) {
+    return (
+      <div>
+        <h3 className="result-subtitle">{t("composition.matrixInspector")}</h3>
+        <p className="meta-text">
+          <span className="spinner" /> {t("shared.loading")}
+        </p>
+      </div>
+    );
+  }
 
   if (!slices) return null;
 

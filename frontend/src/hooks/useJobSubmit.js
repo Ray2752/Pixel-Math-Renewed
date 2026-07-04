@@ -1,17 +1,25 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { waitForJobCompletion } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
+
+const SLOW_HINT_DELAY_MS = 6000;
 
 export function useJobSubmit() {
   const { t } = useSettings();
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [jobStatus, setJobStatus] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSlow, setIsSlow] = useState(false);
+  const slowTimerRef = useRef(null);
 
   async function run(kickoffPromise, { onComplete } = {}) {
     setError("");
     setResult(null);
     setJobStatus("");
+    setIsLoading(true);
+    setIsSlow(false);
+    slowTimerRef.current = setTimeout(() => setIsSlow(true), SLOW_HINT_DELAY_MS);
 
     try {
       const kickoff = await kickoffPromise;
@@ -22,14 +30,22 @@ export function useJobSubmit() {
       setJobStatus(t("shared.jobCompleted", kickoff.job_id));
     } catch (err) {
       setError(err.message);
+      setJobStatus("");
+    } finally {
+      clearTimeout(slowTimerRef.current);
+      setIsLoading(false);
+      setIsSlow(false);
     }
   }
 
   function reset() {
+    clearTimeout(slowTimerRef.current);
     setResult(null);
     setError("");
     setJobStatus("");
+    setIsLoading(false);
+    setIsSlow(false);
   }
 
-  return { result, error, jobStatus, run, reset, setError };
+  return { result, error, jobStatus, isLoading, isSlow, run, reset, setError };
 }

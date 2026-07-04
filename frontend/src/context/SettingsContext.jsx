@@ -4,7 +4,7 @@ import { translations } from "../i18n";
 const STORAGE_KEY = "pixel-math-settings";
 
 export const DEFAULT_SETTINGS = {
-  language: "en",
+  language: "es",
   pixelSize: 10,
   colorLevels: 64,
   alpha: 0.7,

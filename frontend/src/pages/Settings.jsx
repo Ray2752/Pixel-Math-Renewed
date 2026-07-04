@@ -7,6 +7,7 @@ export default function Settings() {
   const { settings, update, restoreDefaults, t } = useSettings();
   const [health, setHealth] = useState(null);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     getHealth()
@@ -20,7 +21,8 @@ export default function Settings() {
             ? t("settings.backendUnavailableDev")
             : t("settings.backendUnavailableProd")
         )
-      );
+      )
+      .finally(() => setChecking(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,6 +105,17 @@ export default function Settings() {
 
       <section className="panel">
         <h2>{t("settings.apiStatus")}</h2>
+        {checking && (
+          <div className="loading-box">
+            <span className="spinner" />
+            <span>
+              {t("settings.checking")}
+              {!import.meta.env.DEV && (
+                <span className="loading-hint"> {t("shared.coldStartHint")}</span>
+              )}
+            </span>
+          </div>
+        )}
         {error && <p className="error">{error}</p>}
         {health && (
           <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>

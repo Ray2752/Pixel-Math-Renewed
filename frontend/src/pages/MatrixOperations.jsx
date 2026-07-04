@@ -16,7 +16,7 @@ export default function MatrixOperations() {
   const [scalar, setScalar] = useState(null);
 
   const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
-  const { result, error, jobStatus, run, setError } = useJobSubmit();
+  const { result, error, jobStatus, isLoading, isSlow, run, setError } = useJobSubmit();
 
   const needsSquare = operation === "rotate" || operation === "determinant";
   const isNonSquare = dimensions && dimensions.width !== dimensions.height;
@@ -89,12 +89,25 @@ export default function MatrixOperations() {
               onChange={setColorLevels}
             />
 
-            <button type="submit">{t("matrixOps.execute")}</button>
+            <button type="submit" disabled={isLoading}>
+              {isLoading && <span className="spinner" />}
+              {t("matrixOps.execute")}
+            </button>
           </form>
 
           {uploadError && <p className="error">{uploadError}</p>}
           {error && <p className="error">{error}</p>}
-          {jobStatus && <p className="job-status">{jobStatus}</p>}
+          {isLoading ? (
+            <div className="loading-box">
+              <span className="spinner" />
+              <span>
+                {t("shared.processing")}
+                {isSlow && <span className="loading-hint"> {t("shared.coldStartHint")}</span>}
+              </span>
+            </div>
+          ) : (
+            jobStatus && <p className="job-status">{jobStatus}</p>
+          )}
         </section>
 
         <div>

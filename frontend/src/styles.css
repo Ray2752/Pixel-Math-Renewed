@@ -751,6 +751,50 @@ ul {
   background: #353a3a;
 }
 
+/* ---------- Loading spinner ---------- */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(124, 212, 219, 0.25);
+  border-top-color: var(--color-primary-light);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.loading-box {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(124, 212, 219, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(124, 212, 219, 0.06);
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.loading-box .loading-hint {
+  color: var(--color-text-dim);
+  font-size: 0.78rem;
+}
+
+button .spinner {
+  margin-right: 0.5rem;
+  border-color: rgba(212, 252, 255, 0.3);
+  border-top-color: #d4fcff;
+}
+
 /* ---------- Responsive: collapse sidebar to top bar ---------- */
 
 @media (max-width: 900px) {

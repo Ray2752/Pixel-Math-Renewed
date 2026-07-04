@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { getPalette } from "../api/client";
+import { useSettings } from "../context/SettingsContext";
 
 export default function PalettePreview({ jobId, artifactKey }) {
+  const { t } = useSettings();
   const [swatches, setSwatches] = useState(null);
   const [error, setError] = useState("");
 
@@ -23,8 +25,13 @@ export default function PalettePreview({ jobId, artifactKey }) {
   }, [jobId, artifactKey]);
 
   if (error) return <p className="error">{error}</p>;
-  if (!swatches) return <p className="meta-text">Loading palette…</p>;
-  if (swatches.length === 0) return <p className="meta-text">No colors found.</p>;
+  if (!swatches)
+    return (
+      <p className="meta-text">
+        <span className="spinner" /> {t("shared.loading")}
+      </p>
+    );
+  if (swatches.length === 0) return <p className="meta-text">—</p>;
 
   return (
     <div className="palette-strip">

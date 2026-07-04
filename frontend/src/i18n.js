@@ -19,6 +19,10 @@ export const translations = {
     "shared.jobRunning": (id) => `Job ${id} running...`,
     "shared.jobCompleted": (id) => `Job ${id} completed.`,
     "shared.selectImageFirst": "Select an image file first.",
+    "shared.processing": "Processing…",
+    "shared.coldStartHint":
+      "The server may be waking up from sleep — this can take up to a minute.",
+    "shared.loading": "Loading…",
 
     // Upload zone
     "upload.dragDrop": "Drag & drop an image",
@@ -116,6 +120,7 @@ export const translations = {
     "settings.backendUnavailableDev": "Backend unavailable. Start the FastAPI server on port 8000.",
     "settings.backendUnavailableProd":
       "Backend unavailable. The server may be waking up — try again in a moment.",
+    "settings.checking": "Checking API status…",
 
     // Documentation
     "docs.title": "Documentation",
@@ -150,6 +155,10 @@ export const translations = {
     "shared.jobRunning": (id) => `Trabajo ${id} en ejecución...`,
     "shared.jobCompleted": (id) => `Trabajo ${id} completado.`,
     "shared.selectImageFirst": "Selecciona primero un archivo de imagen.",
+    "shared.processing": "Procesando…",
+    "shared.coldStartHint":
+      "El servidor puede estar despertando — esto puede tardar hasta un minuto.",
+    "shared.loading": "Cargando…",
 
     // Upload zone
     "upload.dragDrop": "Arrastra y suelta una imagen",
@@ -248,6 +257,7 @@ export const translations = {
       "Backend no disponible. Inicia el servidor FastAPI en el puerto 8000.",
     "settings.backendUnavailableProd":
       "Backend no disponible. El servidor puede estar iniciando — intenta de nuevo en un momento.",
+    "settings.checking": "Consultando estado del API…",
 
     // Documentation
     "docs.title": "Documentación",

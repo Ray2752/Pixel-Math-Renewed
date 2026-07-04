@@ -17,7 +17,7 @@ export default function ImageComposition() {
 
   const landscape = useImageUpload();
   const character = useImageUpload();
-  const { result, error, jobStatus, run, setError } = useJobSubmit();
+  const { result, error, jobStatus, isLoading, isSlow, run, setError } = useJobSubmit();
 
   const hasDimensionMismatch =
     landscape.dimensions &&
@@ -127,7 +127,8 @@ export default function ImageComposition() {
             <p className="meta-text">
               C = {alpha.toFixed(2)}·A + {beta.toFixed(2)}·B
             </p>
-            <button type="submit" disabled={hasDimensionMismatch}>
+            <button type="submit" disabled={hasDimensionMismatch || isLoading}>
+              {isLoading && <span className="spinner" />}
               {t("composition.computeSum")}
             </button>
           </div>
@@ -138,7 +139,17 @@ export default function ImageComposition() {
       {landscape.error && <p className="error">{landscape.error}</p>}
       {character.error && <p className="error">{character.error}</p>}
       {error && <p className="error">{error}</p>}
-      {jobStatus && <p className="job-status">{jobStatus}</p>}
+      {isLoading ? (
+        <div className="loading-box">
+          <span className="spinner" />
+          <span>
+            {t("shared.processing")}
+            {isSlow && <span className="loading-hint"> {t("shared.coldStartHint")}</span>}
+          </span>
+        </div>
+      ) : (
+        jobStatus && <p className="job-status">{jobStatus}</p>
+      )}
 
       {result && (
         <section className="panel">
