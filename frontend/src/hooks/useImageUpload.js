@@ -6,8 +6,7 @@ export function useImageUpload() {
   const [dimensions, setDimensions] = useState(null);
   const [error, setError] = useState("");
 
-  async function handleFileChange(event) {
-    const selected = event.target.files?.[0] || null;
+  async function handleFile(selected) {
     setFile(selected);
     setDimensions(null);
     setError("");
@@ -22,11 +21,15 @@ export function useImageUpload() {
     }
   }
 
+  function handleFileChange(event) {
+    return handleFile(event.target.files?.[0] || null);
+  }
+
   function reset() {
     setFile(null);
     setDimensions(null);
     setError("");
   }
 
-  return { file, dimensions, error, handleFileChange, reset, setError };
+  return { file, dimensions, error, handleFile, handleFileChange, reset, setError };
 }

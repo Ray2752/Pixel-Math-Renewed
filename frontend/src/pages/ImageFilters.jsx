@@ -11,16 +11,16 @@ import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import MatrixTerminalView from "../components/MatrixTerminalView";
 import PalettePreview from "../components/PalettePreview";
-import { formatDimensions } from "../utils/artifacts";
+import UploadZone from "../components/UploadZone";
 
 export default function ImageFilters() {
   const [pixelSize, setPixelSize] = useState(10);
   const [colorLevels, setColorLevels] = useState(64);
   const [terminalMatrix, setTerminalMatrix] = useState(null);
 
-  const { file, dimensions, error: uploadError, handleFileChange, reset: resetUpload } =
+  const { file, dimensions, error: uploadError, handleFile, reset: resetUpload } =
     useImageUpload();
-  const { result, error, jobStatus, run, reset: resetJob } = useJobSubmit();
+  const { result, error, jobStatus, run, reset: resetJob, setError } = useJobSubmit();
 
   useEffect(() => {
     if (!result) {
@@ -35,7 +35,7 @@ export default function ImageFilters() {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!file) {
-      resetJob();
+      setError("Select an image file first.");
       return;
     }
     await run(processFilters({ file, pixelSize, colorLevels }));
@@ -64,40 +64,45 @@ export default function ImageFilters() {
         </p>
       </div>
 
-      <section className="panel">
-        <form onSubmit={handleSubmit} className="form-grid">
-          <label>
-            Image
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
+      <div className="workspace-grid">
+        <section className="panel">
+          <h3 className="result-subtitle" style={{ marginTop: 0 }}>
+            Parameters
+          </h3>
+          <form onSubmit={handleSubmit} className="form-grid">
+            <UploadZone
+              label="Load source image"
+              file={file}
+              dimensions={dimensions}
+              onFile={handleFile}
+            />
 
-          <p className="meta-text">Selected image size: {formatDimensions(dimensions)}</p>
+            <RangeField
+              label="Pixel Size"
+              value={pixelSize}
+              min={1}
+              max={64}
+              onChange={setPixelSize}
+            />
+            <RangeField
+              label="Color Levels"
+              value={colorLevels}
+              min={2}
+              max={256}
+              onChange={setColorLevels}
+            />
 
-          <RangeField
-            label="Pixel Size"
-            value={pixelSize}
-            min={1}
-            max={64}
-            onChange={setPixelSize}
-          />
-          <RangeField
-            label="Color Levels"
-            value={colorLevels}
-            min={2}
-            max={256}
-            onChange={setColorLevels}
-          />
+            <button type="submit">Execute Pipeline</button>
+          </form>
 
-          <button type="submit">Execute Pipeline</button>
-        </form>
+          {uploadError && <p className="error">{uploadError}</p>}
+          {error && <p className="error">{error}</p>}
+          {jobStatus && <p className="job-status">{jobStatus}</p>}
+        </section>
 
-        {uploadError && <p className="error">{uploadError}</p>}
-        {error && <p className="error">{error}</p>}
-        {jobStatus && <p className="job-status">{jobStatus}</p>}
-
-        {result && (
-          <div className="result-wrap">
-            <div className="result">
+        <div>
+          {result ? (
+            <section className="panel">
               <p>Job: {result.job_id}</p>
 
               <h3 className="result-subtitle">Pipeline Stages</h3>
@@ -125,7 +130,9 @@ export default function ImageFilters() {
                 </>
               )}
 
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap" }}>
+              <div
+                style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap" }}
+              >
                 {result.artifacts.pixel_art && (
                   <a href={result.artifacts.pixel_art} download>
                     <button type="button" className="btn-secondary">
@@ -139,17 +146,27 @@ export default function ImageFilters() {
                 <button type="button" className="btn-secondary" onClick={handleReset}>
                   Reset Pipeline
                 </button>
-                <a href={getResultBundleDownloadUrl(result.job_id)} target="_blank" rel="noreferrer">
+                <a
+                  href={getResultBundleDownloadUrl(result.job_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Download ZIP bundle
                 </a>
               </div>
 
               <h3 className="result-subtitle">All Artifacts</h3>
               <ArtifactDownloads jobId={result.job_id} artifacts={result.artifacts} />
+            </section>
+          ) : (
+            <div className="empty-state">
+              <span className="upload-zone-icon">⌗</span>
+              <p>Run the pipeline to see its stages</p>
+              <p className="meta-text">Awaiting dataset input…</p>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

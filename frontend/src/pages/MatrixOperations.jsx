@@ -4,7 +4,8 @@ import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
-import { formatDimensions, isImageArtifact } from "../utils/artifacts";
+import UploadZone from "../components/UploadZone";
+import { isImageArtifact } from "../utils/artifacts";
 
 export default function MatrixOperations() {
   const [operation, setOperation] = useState("transpose");
@@ -12,7 +13,7 @@ export default function MatrixOperations() {
   const [colorLevels, setColorLevels] = useState(64);
   const [scalar, setScalar] = useState(null);
 
-  const { file, dimensions, error: uploadError, handleFileChange } = useImageUpload();
+  const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
   const { result, error, jobStatus, run, setError } = useJobSubmit();
 
   const needsSquare = operation === "rotate" || operation === "determinant";
@@ -46,64 +47,75 @@ export default function MatrixOperations() {
         </p>
       </div>
 
-      <section className="panel">
-        <form onSubmit={handleSubmit} className="form-grid">
-          <label>
-            Operation
-            <select value={operation} onChange={(event) => setOperation(event.target.value)}>
-              <option value="transpose">Transpose</option>
-              <option value="rotate">Rotate</option>
-              <option value="determinant">Determinant</option>
-            </select>
-          </label>
+      <div className="workspace-grid">
+        <section className="panel">
+          <h3 className="result-subtitle" style={{ marginTop: 0 }}>
+            Operation Config
+          </h3>
+          <form onSubmit={handleSubmit} className="form-grid">
+            <label>
+              Operation
+              <select value={operation} onChange={(event) => setOperation(event.target.value)}>
+                <option value="transpose">Transpose</option>
+                <option value="rotate">Rotate</option>
+                <option value="determinant">Determinant</option>
+              </select>
+            </label>
 
-          <label>
-            Image
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
+            <UploadZone
+              label="Source image"
+              file={file}
+              dimensions={dimensions}
+              onFile={handleFile}
+            />
 
-          <p className="meta-text">Selected image size: {formatDimensions(dimensions)}</p>
-          {needsSquare && isNonSquare && (
-            <p className="warn-text">
-              Image is not square — it will be auto-cropped to{" "}
-              {Math.min(dimensions.width, dimensions.height)}×
-              {Math.min(dimensions.width, dimensions.height)} before processing.
-            </p>
-          )}
+            {needsSquare && isNonSquare && (
+              <p className="warn-text">
+                Image is not square — it will be auto-cropped to{" "}
+                {Math.min(dimensions.width, dimensions.height)}×
+                {Math.min(dimensions.width, dimensions.height)} before processing.
+              </p>
+            )}
 
-          <RangeField
-            label="Pixel Size"
-            value={pixelSize}
-            min={1}
-            max={64}
-            onChange={setPixelSize}
-          />
-          <RangeField
-            label="Color Levels"
-            value={colorLevels}
-            min={2}
-            max={256}
-            onChange={setColorLevels}
-          />
+            <RangeField
+              label="Pixel Size"
+              value={pixelSize}
+              min={1}
+              max={64}
+              onChange={setPixelSize}
+            />
+            <RangeField
+              label="Color Levels"
+              value={colorLevels}
+              min={2}
+              max={256}
+              onChange={setColorLevels}
+            />
 
-          <button type="submit">Execute Computation</button>
-        </form>
+            <button type="submit">Execute Computation</button>
+          </form>
 
-        {uploadError && <p className="error">{uploadError}</p>}
-        {error && <p className="error">{error}</p>}
-        {jobStatus && <p className="job-status">{jobStatus}</p>}
+          {uploadError && <p className="error">{uploadError}</p>}
+          {error && <p className="error">{error}</p>}
+          {jobStatus && <p className="job-status">{jobStatus}</p>}
+        </section>
 
-        {result && (
-          <div className="result-wrap">
-            <div className="result">
+        <div>
+          {result ? (
+            <section className="panel">
               <p>Job: {result.job_id}</p>
               {scalar != null && (
-                <p>
-                  <strong>det(A) = {scalar.toFixed(4)}</strong>
-                </p>
+                <div className="scalar-result">
+                  <span className="scalar-result-label">Scalar Determinant Result</span>
+                  <span className="scalar-result-value">det(A) = {scalar.toFixed(4)}</span>
+                </div>
               )}
               <p>
-                <a href={getResultBundleDownloadUrl(result.job_id)} target="_blank" rel="noreferrer">
+                <a
+                  href={getResultBundleDownloadUrl(result.job_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Download ZIP bundle
                 </a>
               </p>
@@ -120,10 +132,16 @@ export default function MatrixOperations() {
                     </figure>
                   ))}
               </div>
+            </section>
+          ) : (
+            <div className="empty-state">
+              <span className="upload-zone-icon">⌗</span>
+              <p>Upload an image to see matrix results</p>
+              <p className="meta-text">Awaiting dataset input…</p>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
