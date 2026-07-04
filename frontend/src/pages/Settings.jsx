@@ -1,30 +1,8 @@
-import { useEffect, useState } from "react";
-import { getHealth } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 
 export default function Settings() {
   const { settings, update, restoreDefaults, t } = useSettings();
-  const [health, setHealth] = useState(null);
-  const [error, setError] = useState("");
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    getHealth()
-      .then((data) => {
-        setHealth(data);
-        setError("");
-      })
-      .catch(() =>
-        setError(
-          import.meta.env.DEV
-            ? t("settings.backendUnavailableDev")
-            : t("settings.backendUnavailableProd")
-        )
-      )
-      .finally(() => setChecking(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div>
@@ -101,35 +79,6 @@ export default function Settings() {
             {t("settings.restore")}
           </button>
         </div>
-      </section>
-
-      <section className="panel">
-        <h2>{t("settings.apiStatus")}</h2>
-        {checking && (
-          <div className="loading-box">
-            <span className="spinner" />
-            <span>
-              {t("settings.checking")}
-              {!import.meta.env.DEV && (
-                <span className="loading-hint"> {t("shared.coldStartHint")}</span>
-              )}
-            </span>
-          </div>
-        )}
-        {error && <p className="error">{error}</p>}
-        {health && (
-          <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>
-            <p className="meta-text">
-              {t("settings.apiStatusLabel")}: {health.status}
-            </p>
-            <p className="meta-text">
-              {t("settings.apiEnvironment")}: {health.environment}
-            </p>
-            <p className="meta-text">
-              {t("settings.apiVersion")}: {health.version}
-            </p>
-          </div>
-        )}
       </section>
     </div>
   );

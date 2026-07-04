@@ -104,7 +104,7 @@ export const translations = {
 
     // Settings
     "settings.title": "Settings",
-    "settings.subtitle": "Preferences and system status for Pixel-Math.",
+    "settings.subtitle": "Preferences for Pixel-Math.",
     "settings.language": "Language",
     "settings.defaultParams": "Default Parameters",
     "settings.defaultParamsHint":
@@ -113,14 +113,6 @@ export const translations = {
     "settings.matrixViewerTable": "Table",
     "settings.matrixViewerTerminal": "Terminal",
     "settings.restore": "Restore defaults",
-    "settings.apiStatus": "API Status",
-    "settings.apiStatusLabel": "Status",
-    "settings.apiEnvironment": "Environment",
-    "settings.apiVersion": "Version",
-    "settings.backendUnavailableDev": "Backend unavailable. Start the FastAPI server on port 8000.",
-    "settings.backendUnavailableProd":
-      "Backend unavailable. The server may be waking up — try again in a moment.",
-    "settings.checking": "Checking API status…",
 
     // Documentation
     "docs.title": "Documentation",
@@ -240,7 +232,7 @@ export const translations = {
 
     // Settings
     "settings.title": "Configuración",
-    "settings.subtitle": "Preferencias y estado del sistema de Pixel-Math.",
+    "settings.subtitle": "Preferencias de Pixel-Math.",
     "settings.language": "Idioma",
     "settings.defaultParams": "Parámetros por Defecto",
     "settings.defaultParamsHint":
@@ -249,15 +241,6 @@ export const translations = {
     "settings.matrixViewerTable": "Tabla",
     "settings.matrixViewerTerminal": "Terminal",
     "settings.restore": "Restaurar valores",
-    "settings.apiStatus": "Estado del API",
-    "settings.apiStatusLabel": "Estado",
-    "settings.apiEnvironment": "Entorno",
-    "settings.apiVersion": "Versión",
-    "settings.backendUnavailableDev":
-      "Backend no disponible. Inicia el servidor FastAPI en el puerto 8000.",
-    "settings.backendUnavailableProd":
-      "Backend no disponible. El servidor puede estar iniciando — intenta de nuevo en un momento.",
-    "settings.checking": "Consultando estado del API…",
 
     // Documentation
     "docs.title": "Documentación",
