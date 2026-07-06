@@ -1,14 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getMatrixCsvUrl, getMatrixData } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
 import { isImageArtifact } from "../utils/artifacts";
 import MatrixTable from "./MatrixTable";
 import MatrixTerminalView from "./MatrixTerminalView";
 
-export default function ArtifactDownloads({ jobId, artifacts, keys, MatrixViewComponent }) {
+export default function ArtifactDownloads({
+  jobId,
+  artifacts,
+  keys,
+  MatrixViewComponent,
+  autoViewKey,
+}) {
   const { settings, t } = useSettings();
   const [matrixView, setMatrixView] = useState(null);
   const [loadingKey, setLoadingKey] = useState(null);
+
+  useEffect(() => {
+    setMatrixView(null);
+    if (!autoViewKey || !artifacts?.[autoViewKey]) return;
+
+    let cancelled = false;
+    setLoadingKey(autoViewKey);
+    getMatrixData(jobId, autoViewKey)
+      .then((data) => {
+        if (!cancelled) setMatrixView({ key: autoViewKey, rows: data.rows, shape: data.shape });
+      })
+      .catch(() => {
+        if (!cancelled) setMatrixView(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingKey(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId]);
 
   const ViewComponent =
     MatrixViewComponent ??

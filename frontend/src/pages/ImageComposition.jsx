@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { getResultBundleDownloadUrl, sumImagesComposition } from "../api/client";
+import {
+  downloadMatrixAsJson,
+  getMatrixData,
+  getResultBundleDownloadUrl,
+  sumImagesComposition,
+} from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
 import { useSettings } from "../context/SettingsContext";
@@ -51,6 +56,12 @@ export default function ImageComposition() {
 
   const usedAlpha = result?.result?.alpha ?? alpha;
   const usedBeta = result?.result?.beta ?? beta;
+
+  async function handleExportArray() {
+    if (!result) return;
+    const data = await getMatrixData(result.job_id, "sum_matrix_xlsx");
+    downloadMatrixAsJson(data, `${result.job_id}_sum_matrix.json`);
+  }
 
   return (
     <div>
@@ -204,6 +215,12 @@ export default function ImageComposition() {
             artifacts={result.artifacts}
             keys={["sum_final_image", "sum_matrix_xlsx"]}
           />
+
+          <div style={{ marginTop: "0.75rem" }}>
+            <button type="button" className="btn-secondary" onClick={handleExportArray}>
+              {"<>"} {t("composition.exportArray")}
+            </button>
+          </div>
 
           <MatrixInspector
             jobId={result.job_id}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { runImageOperation, getResultBundleDownloadUrl } from "../api/client";
+import { getMatrixCsvUrl, getResultBundleDownloadUrl, runImageOperation } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
 import { useSettings } from "../context/SettingsContext";
@@ -113,24 +113,38 @@ export default function MatrixOperations() {
         <div>
           {result ? (
             <section className="panel">
-              <p>Job: {result.job_id}</p>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "0.6rem",
+                }}
+              >
+                <p style={{ margin: 0 }}>Job: {result.job_id}</p>
+                <div style={{ display: "flex", gap: "0.6rem" }}>
+                  <a href={getResultBundleDownloadUrl(result.job_id)} target="_blank" rel="noreferrer">
+                    <button type="button" className="btn-secondary">
+                      ⤓ .ZIP
+                    </button>
+                  </a>
+                  <a href={getMatrixCsvUrl(result.job_id, "numeric_matrix_xlsx")} download>
+                    <button type="button" className="btn-secondary">
+                      ⤓ .CSV
+                    </button>
+                  </a>
+                </div>
+              </div>
               {scalar != null && (
                 <div className="scalar-result">
                   <span className="scalar-result-label">{t("matrixOps.scalarLabel")}</span>
                   <span className="scalar-result-value">det(A) = {scalar.toFixed(4)}</span>
+                  <span className="meta-text">
+                    {Math.abs(scalar) > 1e-9 ? t("matrixOps.nonSingular") : t("matrixOps.singular")}
+                  </span>
                 </div>
               )}
-              <p>
-                <a
-                  href={getResultBundleDownloadUrl(result.job_id)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {t("shared.downloadZip")}
-                </a>
-              </p>
-
-              <ArtifactDownloads jobId={result.job_id} artifacts={result.artifacts} />
 
               <div className="preview-grid">
                 {Object.entries(result.artifacts)
@@ -142,6 +156,13 @@ export default function MatrixOperations() {
                     </figure>
                   ))}
               </div>
+
+              <h3 className="result-subtitle">{t("matrixOps.dataPreview")}</h3>
+              <ArtifactDownloads
+                jobId={result.job_id}
+                artifacts={result.artifacts}
+                autoViewKey="numeric_matrix_xlsx"
+              />
             </section>
           ) : (
             <div className="empty-state">

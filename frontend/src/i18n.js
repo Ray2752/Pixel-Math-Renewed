@@ -23,10 +23,12 @@ export const translations = {
     "shared.coldStartHint":
       "The server may be waking up from sleep — this can take up to a minute.",
     "shared.loading": "Loading…",
+    "shared.copy": "Copy",
+    "shared.copied": "Copied!",
 
     // Upload zone
     "upload.dragDrop": "Drag & drop an image",
-    "upload.hint": "PNG, JPG or WebP — or click to browse",
+    "upload.hint": "PNG, JPG or WebP (max 10MB) — or click to browse",
     "upload.currentInput": "Current input:",
 
     // Home
@@ -63,6 +65,9 @@ export const translations = {
     "matrixOps.emptyTitle": "Upload an image to see matrix results",
     "matrixOps.emptyHint": "Awaiting dataset input…",
     "matrixOps.scalarLabel": "Scalar Determinant Result",
+    "matrixOps.nonSingular": "Non-singular matrix confirmed.",
+    "matrixOps.singular": "Singular matrix (det = 0).",
+    "matrixOps.dataPreview": "Matrix Data Preview",
 
     // Image Filters
     "filters.title": "Pixelation Pipeline",
@@ -97,6 +102,7 @@ export const translations = {
     "composition.individualMatrices": "Individual Matrices",
     "composition.finalComposition": "Final Composition",
     "composition.matrixInspector": "Matrix Inspector [Center Crop]",
+    "composition.exportArray": "Export Array",
     "composition.dimensionMismatch":
       "Dimension mismatch detected. Select files with the same width and height.",
     "composition.selectBoth": "Select both landscape and character images.",
@@ -151,10 +157,12 @@ export const translations = {
     "shared.coldStartHint":
       "El servidor puede estar despertando — esto puede tardar hasta un minuto.",
     "shared.loading": "Cargando…",
+    "shared.copy": "Copiar",
+    "shared.copied": "¡Copiado!",
 
     // Upload zone
     "upload.dragDrop": "Arrastra y suelta una imagen",
-    "upload.hint": "PNG, JPG o WebP — o haz clic para elegir",
+    "upload.hint": "PNG, JPG o WebP (máx 10MB) — o haz clic para elegir",
     "upload.currentInput": "Entrada actual:",
 
     // Home
@@ -191,6 +199,9 @@ export const translations = {
     "matrixOps.emptyTitle": "Sube una imagen para ver los resultados",
     "matrixOps.emptyHint": "Esperando datos de entrada…",
     "matrixOps.scalarLabel": "Resultado Escalar del Determinante",
+    "matrixOps.nonSingular": "Matriz no singular confirmada.",
+    "matrixOps.singular": "Matriz singular (det = 0).",
+    "matrixOps.dataPreview": "Vista Previa de la Matriz",
 
     // Image Filters
     "filters.title": "Pipeline de Pixelación",
@@ -225,6 +236,7 @@ export const translations = {
     "composition.individualMatrices": "Matrices Individuales",
     "composition.finalComposition": "Composición Final",
     "composition.matrixInspector": "Inspector de Matrices [Recorte Central]",
+    "composition.exportArray": "Exportar Arreglo",
     "composition.dimensionMismatch":
       "Las dimensiones no coinciden. Selecciona archivos con el mismo ancho y alto.",
     "composition.selectBoth": "Selecciona ambas imágenes: paisaje y personaje.",
