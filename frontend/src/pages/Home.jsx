@@ -3,22 +3,74 @@ import { Link } from "react-router-dom";
 import { getHealth } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
 
+const MINI_GRID = [
+  ["#1a1a1a", "#4d4d4d", "#808080"],
+  ["#333333", "#666666", "#999999"],
+  ["#262626", "#595959", "#8c8c8c"],
+];
+
+const MINI_MATRIX = [
+  [26, 77, 128],
+  [51, 102, 153],
+  [38, 89, 140],
+];
+
+function PixelToMatrixDiagram() {
+  return (
+    <div className="concept-diagram">
+      <div className="concept-pixel-grid">
+        {MINI_GRID.map((row, i) =>
+          row.map((color, j) => (
+            <div
+              key={`${i}-${j}`}
+              className={i === 1 && j === 1 ? "concept-pixel highlight" : "concept-pixel"}
+              style={{ backgroundColor: color }}
+            />
+          ))
+        )}
+      </div>
+      <span className="concept-arrow">→</span>
+      <div className="concept-matrix">
+        {MINI_MATRIX.map((row, i) =>
+          row.map((value, j) => (
+            <div
+              key={`${i}-${j}`}
+              className={i === 1 && j === 1 ? "concept-cell highlight" : "concept-cell"}
+            >
+              {value}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { t } = useSettings();
-  const [status, setStatus] = useState("Checking backend...");
+  const [apiState, setApiState] = useState("checking");
 
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
     getHealth()
-      .then((data) => setStatus(`API ${data.status} (${data.environment}) v${data.version}`))
-      .catch(() => setStatus("Backend unavailable. Start FastAPI on port 8000."));
+      .then(() => setApiState("online"))
+      .catch(() => setApiState("offline"));
   }, []);
+
+  const pillLabel =
+    apiState === "online"
+      ? t("home.systemOnline")
+      : apiState === "offline"
+        ? t("home.systemOffline")
+        : t("home.connecting");
 
   return (
     <div>
-      <section className="panel">
-        {import.meta.env.DEV && <div className="status">{status}</div>}
-        <div className="page-header" style={{ marginTop: import.meta.env.DEV ? "1rem" : 0 }}>
+      <section className="panel hero-panel">
+        <span className={`status-pill status-pill-${apiState}`}>
+          <span className="status-pill-dot" />
+          {pillLabel}
+        </span>
+        <div className="page-header" style={{ marginTop: "1rem" }}>
           <h1>
             {t("home.heroTitle")}{" "}
             <span style={{ color: "var(--color-primary-light)" }}>{t("home.heroTitleAccent")}</span>
@@ -38,9 +90,25 @@ export default function Home() {
       </section>
 
       <section className="panel">
-        <h2>{t("home.conceptTitle")}</h2>
-        <p style={{ lineHeight: 1.7, marginTop: "1rem" }}>{t("home.conceptP1")}</p>
-        <p style={{ lineHeight: 1.7 }}>{t("home.conceptP2")}</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "0.6rem",
+          }}
+        >
+          <h2>{t("home.conceptTitle")}</h2>
+          <span className="module-chip">MODULE_01</span>
+        </div>
+        <div className="concept-grid">
+          <div>
+            <p style={{ lineHeight: 1.7, marginTop: "1rem" }}>{t("home.conceptP1")}</p>
+            <p style={{ lineHeight: 1.7 }}>{t("home.conceptP2")}</p>
+          </div>
+          <PixelToMatrixDiagram />
+        </div>
         <div style={{ marginTop: "1.5rem" }}>
           <Link to="/matrix-operations">{t("home.tryMatrixOps")}</Link>
         </div>

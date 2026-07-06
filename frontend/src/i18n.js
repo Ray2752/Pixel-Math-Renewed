@@ -36,8 +36,11 @@ export const translations = {
     "home.heroTitleAccent": "Through Pixels",
     "home.heroBody":
       "An interactive laboratory for understanding image processing algorithms. Explore how matrices manipulate pixel data in real-time.",
-    "home.getStarted": "Get Started",
+    "home.getStarted": "Initialize Workspace",
     "home.readDocs": "Read Documentation",
+    "home.systemOnline": "System Online",
+    "home.systemOffline": "System Offline",
+    "home.connecting": "Connecting…",
     "home.conceptTitle": "The Pixel-to-Matrix Concept",
     "home.conceptP1":
       "Every digital image is fundamentally a grid of numerical values. In a grayscale image, each pixel represents a luminance intensity ranging from 0 (black) to 255 (white).",
@@ -170,8 +173,11 @@ export const translations = {
     "home.heroTitleAccent": "A Través de Píxeles",
     "home.heroBody":
       "Un laboratorio interactivo para comprender algoritmos de procesamiento de imágenes. Explora cómo las matrices manipulan datos de píxeles en tiempo real.",
-    "home.getStarted": "Comenzar",
+    "home.getStarted": "Inicializar Espacio",
     "home.readDocs": "Leer Documentación",
+    "home.systemOnline": "Sistema en Línea",
+    "home.systemOffline": "Sistema Fuera de Línea",
+    "home.connecting": "Conectando…",
     "home.conceptTitle": "El Concepto Píxel-a-Matriz",
     "home.conceptP1":
       "Toda imagen digital es fundamentalmente una cuadrícula de valores numéricos. En una imagen en escala de grises, cada píxel representa una intensidad de luminancia que va de 0 (negro) a 255 (blanco).",
