@@ -16,6 +16,12 @@ def test_health_endpoint() -> None:
     assert body["status"] == "ok"
 
 
+def test_system_info_endpoint_matches_health() -> None:
+    response = client.get("/api/v1/system")
+    assert response.status_code == 200
+    assert response.json() == client.get("/health").json()
+
+
 def test_sum_operation_success() -> None:
     payload = {
         "operation": "sum",

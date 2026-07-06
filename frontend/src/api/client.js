@@ -4,9 +4,9 @@ const API_BASE_URL =
 const DEFAULT_POLL_INTERVAL_MS = 900;
 
 export async function getHealth() {
-  const response = await fetch(`${API_BASE_URL}/health`);
+  const response = await fetch(`${API_BASE_URL}/api/v1/system`);
   if (!response.ok) {
-    throw new Error("Health request failed");
+    throw new Error("Status request failed");
   }
   return response.json();
 }

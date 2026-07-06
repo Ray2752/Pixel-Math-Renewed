@@ -175,6 +175,12 @@ def health() -> dict[str, str]:
     }
 
 
+
+@app.get(f"{settings.api_prefix}/system")
+def system_info() -> dict[str, str]:
+    return health()
+
+
 @app.post(f"{settings.api_prefix}/operations/sum", response_model=OperationResponse)
 def sum_operation(payload: OperationRequest) -> OperationResponse:
     if payload.matrix_b is None:
