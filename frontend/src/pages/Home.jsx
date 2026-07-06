@@ -51,9 +51,25 @@ export default function Home() {
   const [apiState, setApiState] = useState("checking");
 
   useEffect(() => {
-    getHealth()
-      .then(() => setApiState("online"))
-      .catch(() => setApiState("offline"));
+    let cancelled = false;
+    let timer;
+
+    async function check(attempt = 0) {
+      try {
+        await getHealth();
+        if (!cancelled) setApiState("online");
+      } catch {
+        if (cancelled) return;
+        setApiState(attempt < 2 ? "checking" : "offline");
+        timer = setTimeout(() => check(attempt + 1), 10000);
+      }
+    }
+
+    check();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   const pillLabel =

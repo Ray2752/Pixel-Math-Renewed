@@ -255,6 +255,9 @@ a {
 
 .form-grid {
   display: grid;
+  /* minmax(0, …) keeps wide children (sliders, mono text) from forcing
+     the column past its container in narrow cards. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.9rem;
 }
 
@@ -326,6 +329,10 @@ button.btn-secondary {
   gap: 0.5rem;
 }
 
+.range-field > * {
+  min-width: 0;
+}
+
 .range-field-row {
   display: flex;
   align-items: center;
@@ -346,6 +353,7 @@ button.btn-secondary {
 
 .range-field-controls input[type="range"] {
   flex: 1;
+  min-width: 0;
 }
 
 .range-field-controls input[type="number"] {
@@ -998,7 +1006,9 @@ button .spinner {
   .workspace-grid,
   .composition-inputs,
   .concept-grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) lets wide content (e.g. the auto-expanded matrix table)
+       scroll inside its own container instead of stretching the column. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .concept-diagram {
