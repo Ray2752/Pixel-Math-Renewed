@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont
 import openpyxl
-import math
 import pandas as pd
 
 def GenerarMatrices(ruta_imagen_entrada, ruta_salida_excel, ruta_salida_mapeo, ruta_salida_imagen_numerica, numero_inicial, tamañopixel,numeromaxpaisa):
@@ -21,14 +20,25 @@ def GenerarMatrices(ruta_imagen_entrada, ruta_salida_excel, ruta_salida_mapeo, r
     draw = ImageDraw.Draw(imagen_numerica)
     font = ImageFont.load_default()
 
-    for i in range(math.ceil(alto / tamano_pixel)):
-        for j in range(math.ceil(ancho / tamano_pixel)):
-            color_pixel = imagen_original.getpixel((j * tamano_pixel, i * tamano_pixel))
+    # pixelar_imagen reduce con división entera (ancho // tamano_pixel bloques) y
+    # reescala de vuelta, así que el tamaño real de bloque es ancho / n_bloques (no
+    # tamano_pixel). Se muestrea el centro de cada bloque real para que la matriz
+    # corresponda 1:1 con el pixel art, sin filas/columnas duplicadas artificialmente.
+    bloques_x = max(1, ancho // tamano_pixel)
+    bloques_y = max(1, alto // tamano_pixel)
+    bloque_ancho = ancho / bloques_x
+    bloque_alto = alto / bloques_y
+
+    for i in range(bloques_y):
+        for j in range(bloques_x):
+            muestra_x = int((j + 0.5) * bloque_ancho)
+            muestra_y = int((i + 0.5) * bloque_alto)
+            color_pixel = imagen_original.getpixel((muestra_x, muestra_y))
 
             # Asigna 0 si es transparente
             if color_pixel == (255, 255, 255, 0) or color_pixel == (0, 0, 0, 0):
                 hoja_color.cell(row=i + 1, column=j + 1, value=0)
-                draw.text((j * tamano_pixel, i * tamano_pixel), "0", fill=(0, 0, 0), font=font)
+                draw.text((int(j * bloque_ancho), int(i * bloque_alto)), "0", fill=(0, 0, 0), font=font)
             else:
                 # Si el color ya tiene un número asignado, lo reutiliza
                 if color_pixel not in color_a_numero:
@@ -37,7 +47,7 @@ def GenerarMatrices(ruta_imagen_entrada, ruta_salida_excel, ruta_salida_mapeo, r
                     numero_actual = numeromaxpaisa+numero_actual+1
                 # Escribe el número asignado en el Excel y en la imagen de salida
                 hoja_color.cell(row=i + 1, column=j + 1, value=color_a_numero[color_pixel])
-                draw.text((j * tamano_pixel, i * tamano_pixel), str(color_a_numero[color_pixel]), fill=(0, 0, 0), font=font)
+                draw.text((int(j * bloque_ancho), int(i * bloque_alto)), str(color_a_numero[color_pixel]), fill=(0, 0, 0), font=font)
 
     libro_color.save(ruta_salida_excel)
 

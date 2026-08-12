@@ -1,5 +1,8 @@
 import ast
+import json
+import shutil
 import sys
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Any
@@ -63,7 +66,7 @@ def store_job(
     result: dict[str, Any] | None = None,
     job_dir: Path | None = None,
 ) -> None:
-    JOB_STORE[job_id] = {
+    job = {
         "job_id": job_id,
         "status": status,
         "progress": progress,
@@ -72,6 +75,51 @@ def store_job(
         "result": result or {},
         "job_dir": str(job_dir) if job_dir else None,
     }
+    JOB_STORE[job_id] = job
+
+    # Persistir en disco para que los resultados sobrevivan reinicios del proceso.
+    if job_dir is not None:
+        try:
+            (job_dir / "job.json").write_text(json.dumps(job))
+        except OSError:
+            pass
+
+    prune_expired_jobs()
+
+
+def load_job(job_id: str) -> dict[str, Any] | None:
+    job = JOB_STORE.get(job_id)
+    if job is not None:
+        return job
+
+    job_dir = (ARTIFACTS_ROOT / job_id).resolve()
+    if job_dir.parent != ARTIFACTS_ROOT.resolve():
+        return None
+
+    job_file = job_dir / "job.json"
+    if not job_file.exists():
+        return None
+
+    try:
+        job = json.loads(job_file.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    JOB_STORE[job_id] = job
+    return job
+
+
+def prune_expired_jobs() -> None:
+    cutoff = time.time() - settings.job_retention_hours * 3600
+    for job_dir in ARTIFACTS_ROOT.iterdir():
+        if not job_dir.is_dir():
+            continue
+        try:
+            if job_dir.stat().st_mtime < cutoff:
+                shutil.rmtree(job_dir, ignore_errors=True)
+                JOB_STORE.pop(job_dir.name, None)
+        except OSError:
+            continue
 
 
 def as_artifact_url(job_id: str, file_path: Path) -> str:
@@ -89,13 +137,33 @@ def validate_uploaded_image(content: bytes, filename: str) -> tuple[int, int]:
         ) from exc
 
 
+def read_upload_checked(upload: UploadFile) -> bytes:
+    # Medir sobre el archivo en spool evita cargar cuerpos gigantes a RAM
+    # solo para descubrir que exceden el límite.
+    upload.file.seek(0, 2)
+    size = upload.file.tell()
+    upload.file.seek(0)
+    if size > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File exceeds max size of {settings.max_upload_mb} MB",
+        )
+    return upload.file.read()
+
+
 def save_upload(content: bytes, destination: Path, max_dim: int = 800) -> None:
-    with Image.open(BytesIO(content)) as img:
-        w, h = img.size
-        if w > max_dim or h > max_dim:
-            scale = max_dim / max(w, h)
-            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-        img.save(destination)
+    try:
+        with Image.open(BytesIO(content)) as img:
+            w, h = img.size
+            if w > max_dim or h > max_dim:
+                scale = max_dim / max(w, h)
+                img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+            img.save(destination)
+    except Exception as exc:
+        # Cubre bombas de descompresión y formatos que PIL no puede reescribir
+        raise HTTPException(
+            status_code=400, detail=f"Could not process image file: {exc}"
+        ) from exc
 
 
 def make_square(source: Path, dest: Path) -> None:
@@ -114,6 +182,14 @@ def run_filter_pipeline(
     numero_inicial: int,
     numeromaxpaisa: int,
 ) -> dict[str, Any]:
+    with Image.open(source_path) as source_img:
+        smallest_side = min(source_img.size)
+    if pixel_size > smallest_side:
+        raise ValueError(
+            f"pixel_size ({pixel_size}) cannot exceed the smallest side of the "
+            f"processed image ({smallest_side}px)"
+        )
+
     simplified_path = Path(
         simplificar_colores(
             str(source_path),
@@ -160,7 +236,7 @@ def build_zip_bundle(job_id: str, job_dir: Path) -> Path:
     zip_path = job_dir / f"{job_id}_artifacts.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for file_path in sorted(job_dir.iterdir()):
-            if file_path.is_file() and file_path != zip_path:
+            if file_path.is_file() and file_path != zip_path and file_path.name != "job.json":
                 zip_file.write(file_path, arcname=file_path.name)
 
     return zip_path
@@ -344,7 +420,7 @@ def _build_image_op_artifacts(
     f"{settings.api_prefix}/operations/image/transpose",
     response_model=FilterProcessResponse,
 )
-async def transpose_image_operation(
+def transpose_image_operation(
     image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
     color_levels: Annotated[int, Form(...)] = 64,
@@ -360,9 +436,7 @@ async def transpose_image_operation(
     job_dir = ARTIFACTS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    content = await image.read()
-    if len(content) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    content = read_upload_checked(image)
     extension = Path(image.filename or "input.png").suffix or ".png"
     source_path = job_dir / f"source{extension}"
     validate_uploaded_image(content, image.filename or "image")
@@ -401,7 +475,7 @@ async def transpose_image_operation(
     f"{settings.api_prefix}/operations/image/rotate",
     response_model=FilterProcessResponse,
 )
-async def rotate_image_operation(
+def rotate_image_operation(
     image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
     color_levels: Annotated[int, Form(...)] = 64,
@@ -417,9 +491,7 @@ async def rotate_image_operation(
     job_dir = ARTIFACTS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    content = await image.read()
-    if len(content) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    content = read_upload_checked(image)
     extension = Path(image.filename or "input.png").suffix or ".png"
     source_path = job_dir / f"source{extension}"
     validate_uploaded_image(content, image.filename or "image")
@@ -458,7 +530,7 @@ async def rotate_image_operation(
     f"{settings.api_prefix}/operations/image/determinant",
     response_model=FilterProcessResponse,
 )
-async def determinant_image_operation(
+def determinant_image_operation(
     image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
     color_levels: Annotated[int, Form(...)] = 64,
@@ -474,9 +546,7 @@ async def determinant_image_operation(
     job_dir = ARTIFACTS_ROOT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    content = await image.read()
-    if len(content) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(status_code=400, detail=f"File exceeds max size of {settings.max_upload_mb} MB")
+    content = read_upload_checked(image)
     extension = Path(image.filename or "input.png").suffix or ".png"
     source_path = job_dir / f"source{extension}"
     validate_uploaded_image(content, image.filename or "image")
@@ -514,7 +584,7 @@ async def determinant_image_operation(
 
 
 @app.post(f"{settings.api_prefix}/filters/process", response_model=FilterProcessResponse)
-async def process_filters(
+def process_filters(
     image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
     color_levels: Annotated[int, Form(...)] = 64,
@@ -537,12 +607,7 @@ async def process_filters(
     extension = Path(image.filename or "input.png").suffix or ".png"
     source_path = job_dir / f"source{extension}"
 
-    content = await image.read()
-    if len(content) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File exceeds max size of {settings.max_upload_mb} MB",
-        )
+    content = read_upload_checked(image)
 
     validate_uploaded_image(content, image.filename or "image")
 
@@ -597,7 +662,7 @@ async def process_filters(
 @app.post(
     f"{settings.api_prefix}/compositions/sum-images", response_model=FilterProcessResponse
 )
-async def sum_images_composition(
+def sum_images_composition(
     landscape_image: Annotated[UploadFile, File(...)],
     character_image: Annotated[UploadFile, File(...)],
     pixel_size: Annotated[int, Form(...)] = 10,
@@ -629,15 +694,8 @@ async def sum_images_composition(
     ):
         raise HTTPException(status_code=400, detail="Character file must be an image")
 
-    landscape_content = await landscape_image.read()
-    character_content = await character_image.read()
-
-    for content in (landscape_content, character_content):
-        if len(content) > settings.max_upload_mb * 1024 * 1024:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Each file must be <= {settings.max_upload_mb} MB",
-            )
+    landscape_content = read_upload_checked(landscape_image)
+    character_content = read_upload_checked(character_image)
 
     landscape_size = validate_uploaded_image(
         landscape_content, landscape_image.filename or "landscape"
@@ -744,7 +802,7 @@ async def sum_images_composition(
 
 @app.get(f"{settings.api_prefix}/jobs/{{job_id}}", response_model=JobStatusResponse)
 def get_job_status(job_id: str) -> JobStatusResponse:
-    job = JOB_STORE.get(job_id)
+    job = load_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -758,7 +816,7 @@ def get_job_status(job_id: str) -> JobStatusResponse:
 
 @app.get(f"{settings.api_prefix}/results/{{job_id}}")
 def get_result(job_id: str) -> dict[str, Any]:
-    job = JOB_STORE.get(job_id)
+    job = load_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -792,7 +850,7 @@ def view_matrix_data(job_id: str, artifact_key: str) -> dict[str, Any]:
 
 
 def _resolve_artifact_xlsx(job_id: str, artifact_key: str) -> Path:
-    job = JOB_STORE.get(job_id)
+    job = load_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -853,7 +911,7 @@ def get_color_palette(job_id: str, artifact_key: str) -> dict[str, Any]:
 
 @app.get(f"{settings.api_prefix}/results/{{job_id}}/download")
 def download_result_bundle(job_id: str) -> FileResponse:
-    job = JOB_STORE.get(job_id)
+    job = load_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -865,7 +923,9 @@ def download_result_bundle(job_id: str) -> FileResponse:
     if not job_dir.exists():
         raise HTTPException(status_code=404, detail="Artifact directory not found")
 
-    zip_path = build_zip_bundle(job_id, job_dir)
+    zip_path = job_dir / f"{job_id}_artifacts.zip"
+    if not zip_path.exists():
+        zip_path = build_zip_bundle(job_id, job_dir)
     job["artifacts"]["bundle_zip"] = as_artifact_url(job_id, zip_path)
 
     return FileResponse(

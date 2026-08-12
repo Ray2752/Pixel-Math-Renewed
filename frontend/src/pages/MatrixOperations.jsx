@@ -14,6 +14,7 @@ export default function MatrixOperations() {
   const [pixelSize, setPixelSize] = useState(settings.pixelSize);
   const [colorLevels, setColorLevels] = useState(settings.colorLevels);
   const [scalar, setScalar] = useState(null);
+  const [warnings, setWarnings] = useState([]);
 
   const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
   const { result, error, jobStatus, isLoading, isSlow, run, setError } = useJobSubmit();
@@ -21,9 +22,28 @@ export default function MatrixOperations() {
   const needsSquare = operation === "rotate" || operation === "determinant";
   const isNonSquare = dimensions && dimensions.width !== dimensions.height;
 
+  // El backend reescala a máx 800px antes de recortar al cuadrado; reflejar
+  // el tamaño real del recorte, no el de la imagen original.
+  const MAX_PROCESS_DIM = 800;
+  function effectiveCropSide() {
+    const { width, height } = dimensions;
+    const maxSide = Math.max(width, height);
+    const scale = maxSide > MAX_PROCESS_DIM ? MAX_PROCESS_DIM / maxSide : 1;
+    return Math.floor(Math.min(width, height) * scale);
+  }
+
+  function translateWarning(warning) {
+    if (warning.includes("still singular")) return t("matrixOps.warnStillSingular");
+    if (warning.includes("adjusted to avoid")) return t("matrixOps.warnAdjusted");
+    const overflow = warning.match(/overflows double precision \(\|det\| is about (10\^-?\d+)\)/);
+    if (overflow) return t("matrixOps.warnDetOverflow", overflow[1]);
+    return warning;
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setScalar(null);
+    setWarnings([]);
 
     if (!file) {
       setError(t("shared.selectImageFirst"));
@@ -35,6 +55,7 @@ export default function MatrixOperations() {
         if (operation === "determinant" && completed.result?.scalar_result != null) {
           setScalar(completed.result.scalar_result);
         }
+        setWarnings(completed.result?.warnings ?? []);
       },
     });
   }
@@ -70,7 +91,7 @@ export default function MatrixOperations() {
 
             {needsSquare && isNonSquare && (
               <p className="warn-text">
-                {t("matrixOps.nonSquareWarn", Math.min(dimensions.width, dimensions.height))}
+                {t("matrixOps.nonSquareWarn", effectiveCropSide())}
               </p>
             )}
 
@@ -145,6 +166,12 @@ export default function MatrixOperations() {
                   </span>
                 </div>
               )}
+              {warnings.length > 0 &&
+                warnings.map((warning) => (
+                  <p key={warning} className="warn-text">
+                    {translateWarning(warning)}
+                  </p>
+                ))}
 
               <div className="preview-grid">
                 {Object.entries(result.artifacts)

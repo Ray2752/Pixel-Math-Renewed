@@ -1,5 +1,6 @@
 from io import BytesIO
 
+import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -69,7 +70,8 @@ def test_rotate_operation_success() -> None:
     payload = {"operation": "rotate", "matrix_a": [[1, 2], [3, 4]]}
     response = client.post("/api/v1/operations/rotate", json=payload)
     assert response.status_code == 200
-    assert response.json()["result_matrix"] == [[2.0, 1.0], [4.0, 3.0]]
+    # Rotación 90° horaria (equivalente a np.rot90(matrix, k=-1))
+    assert response.json()["result_matrix"] == [[3.0, 1.0], [4.0, 2.0]]
 
 
 def test_determinant_operation_success_with_duplicate_adjustment() -> None:
@@ -80,6 +82,30 @@ def test_determinant_operation_success_with_duplicate_adjustment() -> None:
     assert body["operation"] == "determinant"
     assert isinstance(body["scalar_result"], float)
     assert len(body["warnings"]) == 1
+
+
+def test_determinant_reports_singularity_when_adjustment_cannot_fix_it() -> None:
+    payload = {
+        "operation": "determinant",
+        "matrix_a": [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+    }
+    response = client.post("/api/v1/operations/determinant", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["scalar_result"] == 0.0
+    assert len(body["warnings"]) == 1
+    assert "still singular" in body["warnings"][0]
+
+
+def test_determinant_overflow_returns_null_scalar_with_warning() -> None:
+    rng = np.random.default_rng(42)
+    big = rng.integers(1, 256, size=(200, 200)).astype(float)
+    payload = {"operation": "determinant", "matrix_a": big.tolist()}
+    response = client.post("/api/v1/operations/determinant", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["scalar_result"] is None
+    assert any("overflows double precision" in warning for warning in body["warnings"])
 
 
 def test_determinant_requires_square_matrix() -> None:
@@ -301,3 +327,34 @@ def test_palette_endpoint_success() -> None:
     assert "swatches" in body
     assert len(body["swatches"]) >= 1
     assert len(body["swatches"][0]["rgba"]) == 4
+
+
+def test_image_operation_rejects_pixel_size_larger_than_image() -> None:
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/operations/image/determinant",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 8, "color_levels": 64},
+    )
+    assert response.status_code == 400
+    assert "cannot exceed the smallest side" in response.json()["detail"]
+
+
+def test_job_results_survive_process_restart() -> None:
+    from backend.app.main import JOB_STORE
+
+    image_bytes = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/filters/process",
+        files={"image": ("sample.png", image_bytes, "image/png")},
+        data={"pixel_size": 2, "color_levels": 64},
+    )
+    assert response.status_code == 200
+    job_id = response.json()["job_id"]
+
+    JOB_STORE.clear()  # simula un reinicio del proceso
+
+    recovered = client.get(f"/api/v1/results/{job_id}")
+    assert recovered.status_code == 200
+    assert recovered.json()["job_id"] == job_id
+    assert recovered.json()["artifacts"]

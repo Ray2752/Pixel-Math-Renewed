@@ -1,4 +1,6 @@
+import math
 import uuid
+from collections import Counter
 
 import numpy as np
 
@@ -53,18 +55,24 @@ class MatrixDomainService:
         for i in range(rows):
             anti_identity[i, rows - i - 1] = 1
 
-        return np.dot(matrix, anti_identity).tolist()
+        # Rotación de 90° horaria: transponer y luego invertir el orden de las
+        # columnas multiplicando por la anti-identidad (A^T · J). Multiplicar solo
+        # por J sería un espejo horizontal, no una rotación.
+        return np.dot(matrix.T, anti_identity).tolist()
 
     @staticmethod
     def _find_duplicate_rows_and_cols(matrix: np.ndarray) -> tuple[list[int], list[int]]:
         rows_as_tuple = [tuple(row) for row in matrix]
         cols_as_tuple = [tuple(col) for col in matrix.T]
 
+        row_counts = Counter(rows_as_tuple)
+        col_counts = Counter(cols_as_tuple)
+
         duplicate_rows = [
-            idx for idx, row in enumerate(rows_as_tuple) if rows_as_tuple.count(row) > 1
+            idx for idx, row in enumerate(rows_as_tuple) if row_counts[row] > 1
         ]
         duplicate_cols = [
-            idx for idx, col in enumerate(cols_as_tuple) if cols_as_tuple.count(col) > 1
+            idx for idx, col in enumerate(cols_as_tuple) if col_counts[col] > 1
         ]
 
         return duplicate_rows, duplicate_cols
@@ -85,7 +93,7 @@ class MatrixDomainService:
 
     def determinant(
         self, matrix_values: list[list[float]]
-    ) -> tuple[list[list[float]], float, list[str]]:
+    ) -> tuple[list[list[float]], float | None, list[str]]:
         matrix = self._to_matrix(matrix_values)
         rows, cols = matrix.shape
 
@@ -97,9 +105,35 @@ class MatrixDomainService:
 
         if duplicate_rows or duplicate_cols:
             matrix = self._adjust_duplicates(matrix, duplicate_rows, duplicate_cols)
-            warnings.append(
-                "Matrix had repeated rows/columns and was adjusted to avoid zero determinant."
-            )
 
         determinant_value = float(np.linalg.det(matrix))
+
+        if duplicate_rows or duplicate_cols:
+            # Adding a constant per duplicated row keeps 3+ identical rows inside a
+            # rank-2 subspace, so the adjustment cannot always remove the singularity.
+            if np.linalg.matrix_rank(matrix) < rows:
+                determinant_value = 0.0
+                warnings.append(
+                    "Matrix had repeated rows/columns; the adjustment could not remove "
+                    "the linear dependence, so the matrix is still singular (det = 0)."
+                )
+            else:
+                warnings.append(
+                    "Matrix had repeated rows/columns and was adjusted to avoid a zero "
+                    "determinant."
+                )
+
+        if not math.isfinite(determinant_value):
+            # float64 tops out near 1.8e308; large matrices of color codes exceed it.
+            _, logabsdet = np.linalg.slogdet(matrix)
+            if logabsdet == -math.inf:
+                determinant_value = 0.0
+            else:
+                magnitude = logabsdet / math.log(10)
+                warnings.append(
+                    "Determinant overflows double precision "
+                    f"(|det| is about 10^{magnitude:.0f}); the scalar result was omitted."
+                )
+                determinant_value = None
+
         return matrix.tolist(), determinant_value, warnings

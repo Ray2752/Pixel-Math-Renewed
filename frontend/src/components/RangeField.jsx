@@ -21,6 +21,7 @@ export default function RangeField({ label, value, min, max, step = 1, onChange 
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
+          onBlur={() => onChange(Math.min(max, Math.max(min, Number(value) || min)))}
         />
       </div>
     </div>

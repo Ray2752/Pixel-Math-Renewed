@@ -70,6 +70,12 @@ export const translations = {
     "matrixOps.scalarLabel": "Scalar Determinant Result",
     "matrixOps.nonSingular": "Non-singular matrix confirmed.",
     "matrixOps.singular": "Singular matrix (det = 0).",
+    "matrixOps.warnStillSingular":
+      "The matrix had repeated rows/columns; the adjustment could not remove the linear dependence, so it is still singular (det = 0).",
+    "matrixOps.warnAdjusted":
+      "The matrix had repeated rows/columns and was adjusted to avoid a zero determinant.",
+    "matrixOps.warnDetOverflow": (magnitude) =>
+      `The determinant magnitude is about ${magnitude}, beyond what double precision can represent — the exact scalar cannot be displayed.`,
     "matrixOps.dataPreview": "Matrix Data Preview",
 
     // Image Filters
@@ -207,6 +213,12 @@ export const translations = {
     "matrixOps.scalarLabel": "Resultado Escalar del Determinante",
     "matrixOps.nonSingular": "Matriz no singular confirmada.",
     "matrixOps.singular": "Matriz singular (det = 0).",
+    "matrixOps.warnStillSingular":
+      "La matriz tenía filas/columnas repetidas; el ajuste no pudo eliminar la dependencia lineal, así que sigue siendo singular (det = 0).",
+    "matrixOps.warnAdjusted":
+      "La matriz tenía filas/columnas repetidas y fue ajustada para evitar un determinante cero.",
+    "matrixOps.warnDetOverflow": (magnitude) =>
+      `La magnitud del determinante es de aproximadamente ${magnitude}, más de lo que la doble precisión puede representar — el escalar exacto no puede mostrarse.`,
     "matrixOps.dataPreview": "Vista Previa de la Matriz",
 
     // Image Filters
