@@ -22,6 +22,8 @@ export const translations = {
     "shared.processing": "Processing…",
     "shared.coldStartHint":
       "The server may be waking up from sleep — this can take up to a minute.",
+    "shared.requestTimeout":
+      "The server took too long to respond. It may be waking up — try again in a moment.",
     "shared.loading": "Loading…",
     "shared.copy": "Copy",
     "shared.copied": "Copied!",
@@ -168,6 +170,8 @@ export const translations = {
     "shared.processing": "Procesando…",
     "shared.coldStartHint":
       "El servidor puede estar despertando — esto puede tardar hasta un minuto.",
+    "shared.requestTimeout":
+      "El servidor tardó demasiado en responder. Puede estar despertando — inténtalo de nuevo en un momento.",
     "shared.loading": "Cargando…",
     "shared.copy": "Copiar",
     "shared.copied": "¡Copiado!",

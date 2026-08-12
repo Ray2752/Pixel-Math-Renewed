@@ -3,6 +3,30 @@ const API_BASE_URL =
 
 const DEFAULT_POLL_INTERVAL_MS = 900;
 
+// Margen para cold starts del backend (Render puede tardar ~1 min en despertar)
+const KICKOFF_TIMEOUT_MS = 120000;
+
+async function parseJsonSafe(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function postWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), KICKOFF_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    // Sin esto, un servidor colgado deja el spinner girando para siempre
+    throw err.name === "AbortError" ? new Error("REQUEST_TIMEOUT") : err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getHealth() {
   const response = await fetch(`${API_BASE_URL}/api/v1/system`);
   if (!response.ok) {
@@ -27,7 +51,7 @@ function operationUrl(operation) {
 }
 
 export async function runOperation({ operation, matrixA, matrixB }) {
-  const response = await fetch(operationUrl(operation), {
+  const response = await postWithTimeout(operationUrl(operation), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -39,9 +63,9 @@ export async function runOperation({ operation, matrixA, matrixB }) {
     }),
   });
 
-  const data = await response.json();
+  const data = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new Error(data.detail || "Operation failed");
+    throw new Error(data?.detail || `Server error (${response.status})`);
   }
 
   return data;
@@ -53,14 +77,14 @@ export async function processFilters({ file, pixelSize, colorLevels }) {
   formData.append("pixel_size", String(pixelSize));
   formData.append("color_levels", String(colorLevels));
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/filters/process`, {
+  const response = await postWithTimeout(`${API_BASE_URL}/api/v1/filters/process`, {
     method: "POST",
     body: formData,
   });
 
-  const data = await response.json();
+  const data = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new Error(data.detail || "Filter processing failed");
+    throw new Error(data?.detail || `Server error (${response.status})`);
   }
 
   return {
@@ -90,14 +114,14 @@ export async function sumImagesComposition({
   formData.append("alpha", String(alpha));
   formData.append("beta", String(beta));
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/compositions/sum-images`, {
-    method: "POST",
-    body: formData,
-  });
+  const response = await postWithTimeout(
+    `${API_BASE_URL}/api/v1/compositions/sum-images`,
+    { method: "POST", body: formData }
+  );
 
-  const data = await response.json();
+  const data = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new Error(data.detail || "Image composition failed");
+    throw new Error(data?.detail || `Server error (${response.status})`);
   }
 
   return {
@@ -117,12 +141,12 @@ export async function runImageOperation({ operation, file, pixelSize, colorLevel
   formData.append("pixel_size", String(pixelSize));
   formData.append("color_levels", String(colorLevels));
 
-  const response = await fetch(
+  const response = await postWithTimeout(
     `${API_BASE_URL}/api/v1/operations/image/${operation}`,
     { method: "POST", body: formData }
   );
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Image operation failed");
+  const data = await parseJsonSafe(response);
+  if (!response.ok) throw new Error(data?.detail || `Server error (${response.status})`);
 
   return {
     ...data,

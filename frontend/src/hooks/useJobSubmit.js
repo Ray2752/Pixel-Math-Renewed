@@ -29,7 +29,7 @@ export function useJobSubmit() {
       onComplete?.(completed);
       setJobStatus(t("shared.jobCompleted", kickoff.job_id));
     } catch (err) {
-      setError(err.message);
+      setError(err.message === "REQUEST_TIMEOUT" ? t("shared.requestTimeout") : err.message);
       setJobStatus("");
     } finally {
       clearTimeout(slowTimerRef.current);
