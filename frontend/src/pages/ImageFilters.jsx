@@ -7,6 +7,7 @@ import {
 } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { usePersistedState } from "../hooks/usePersistedState";
 import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
@@ -16,14 +17,20 @@ import UploadZone from "../components/UploadZone";
 
 export default function ImageFilters() {
   const { settings, t } = useSettings();
-  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
-  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
+  const [pixelSize, setPixelSize] = usePersistedState(
+    "pixelmath:filters:pixelSize",
+    settings.pixelSize
+  );
+  const [colorLevels, setColorLevels] = usePersistedState(
+    "pixelmath:filters:colorLevels",
+    settings.colorLevels
+  );
   const [terminalMatrix, setTerminalMatrix] = useState(null);
 
   const { file, dimensions, error: uploadError, handleFile, reset: resetUpload } =
     useImageUpload();
   const { result, error, jobStatus, isLoading, isSlow, run, reset: resetJob, setError } =
-    useJobSubmit();
+    useJobSubmit("pixelmath:lastJob:filters");
 
   useEffect(() => {
     if (!result) {

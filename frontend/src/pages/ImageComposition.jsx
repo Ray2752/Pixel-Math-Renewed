@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   downloadMatrixAsJson,
   getMatrixData,
@@ -7,6 +6,7 @@ import {
 } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { usePersistedState } from "../hooks/usePersistedState";
 import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
@@ -15,14 +15,21 @@ import UploadZone from "../components/UploadZone";
 
 export default function ImageComposition() {
   const { settings, t } = useSettings();
-  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
-  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
-  const [alpha, setAlpha] = useState(settings.alpha);
-  const [beta, setBeta] = useState(settings.beta);
+  const [pixelSize, setPixelSize] = usePersistedState(
+    "pixelmath:composition:pixelSize",
+    settings.pixelSize
+  );
+  const [colorLevels, setColorLevels] = usePersistedState(
+    "pixelmath:composition:colorLevels",
+    settings.colorLevels
+  );
+  const [alpha, setAlpha] = usePersistedState("pixelmath:composition:alpha", settings.alpha);
+  const [beta, setBeta] = usePersistedState("pixelmath:composition:beta", settings.beta);
 
   const landscape = useImageUpload();
   const character = useImageUpload();
-  const { result, error, jobStatus, isLoading, isSlow, run, setError } = useJobSubmit();
+  const { result, error, jobStatus, isLoading, isSlow, run, setError } =
+    useJobSubmit("pixelmath:lastJob:composition");
 
   const hasDimensionMismatch =
     landscape.dimensions &&

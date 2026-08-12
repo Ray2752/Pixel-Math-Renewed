@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { getMatrixCsvUrl, getResultBundleDownloadUrl, runImageOperation } from "../api/client";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { useJobSubmit } from "../hooks/useJobSubmit";
+import { usePersistedState } from "../hooks/usePersistedState";
 import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
@@ -10,14 +10,23 @@ import { isImageArtifact } from "../utils/artifacts";
 
 export default function MatrixOperations() {
   const { settings, t } = useSettings();
-  const [operation, setOperation] = useState("transpose");
-  const [pixelSize, setPixelSize] = useState(settings.pixelSize);
-  const [colorLevels, setColorLevels] = useState(settings.colorLevels);
-  const [scalar, setScalar] = useState(null);
-  const [warnings, setWarnings] = useState([]);
+  const [operation, setOperation] = usePersistedState("pixelmath:matrixOps:operation", "transpose");
+  const [pixelSize, setPixelSize] = usePersistedState(
+    "pixelmath:matrixOps:pixelSize",
+    settings.pixelSize
+  );
+  const [colorLevels, setColorLevels] = usePersistedState(
+    "pixelmath:matrixOps:colorLevels",
+    settings.colorLevels
+  );
 
   const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
-  const { result, error, jobStatus, isLoading, isSlow, run, setError } = useJobSubmit();
+  const { result, error, jobStatus, isLoading, isSlow, run, setError } =
+    useJobSubmit("pixelmath:lastJob:matrixOps");
+
+  // Derivados del resultado (sobreviven a un refresh vía restauración del job)
+  const scalar = result?.result?.scalar_result ?? null;
+  const warnings = result?.result?.warnings ?? [];
 
   const needsSquare = operation === "rotate" || operation === "determinant";
   const isNonSquare = dimensions && dimensions.width !== dimensions.height;
@@ -42,22 +51,13 @@ export default function MatrixOperations() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setScalar(null);
-    setWarnings([]);
 
     if (!file) {
       setError(t("shared.selectImageFirst"));
       return;
     }
 
-    await run(runImageOperation({ operation, file, pixelSize, colorLevels }), {
-      onComplete: (completed) => {
-        if (operation === "determinant" && completed.result?.scalar_result != null) {
-          setScalar(completed.result.scalar_result);
-        }
-        setWarnings(completed.result?.warnings ?? []);
-      },
-    });
+    await run(runImageOperation({ operation, file, pixelSize, colorLevels }));
   }
 
   return (

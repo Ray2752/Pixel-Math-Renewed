@@ -18,6 +18,7 @@ export const translations = {
     "shared.couldNotLoadMatrix": "Could not load matrix.",
     "shared.jobRunning": (id) => `Job ${id} running...`,
     "shared.jobCompleted": (id) => `Job ${id} completed.`,
+    "shared.jobRestored": (id) => `Previous job ${id} restored.`,
     "shared.selectImageFirst": "Select an image file first.",
     "shared.processing": "Processing…",
     "shared.coldStartHint":
@@ -166,6 +167,7 @@ export const translations = {
     "shared.couldNotLoadMatrix": "No se pudo cargar la matriz.",
     "shared.jobRunning": (id) => `Trabajo ${id} en ejecución...`,
     "shared.jobCompleted": (id) => `Trabajo ${id} completado.`,
+    "shared.jobRestored": (id) => `Trabajo anterior ${id} restaurado.`,
     "shared.selectImageFirst": "Selecciona primero un archivo de imagen.",
     "shared.processing": "Procesando…",
     "shared.coldStartHint":
