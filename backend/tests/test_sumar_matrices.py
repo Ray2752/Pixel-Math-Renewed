@@ -100,6 +100,48 @@ def test_weighted_sum_both_transparent_is_fully_transparent(tmp_path: Path) -> N
     assert color_map[matrix[0][0]] == (0, 0, 0, 0)
 
 
+def test_visible_character_pixel_never_becomes_transparent(tmp_path: Path) -> None:
+    # Con beta baja, round(beta * codigo) puede dar 0; antes el píxel visible
+    # quedaba en 0 y se renderizaba transparente (desaparecía de la imagen).
+    paisaje_path = _write_matrix_xlsx(tmp_path / "paisaje.xlsx", [[0]])
+    personaje_path = _write_matrix_xlsx(tmp_path / "personaje.xlsx", [[1]])
+
+    matrix, color_map = cargar_y_sumar_matrices(
+        matrizpersonaje=str(personaje_path),
+        matrizpaisaje=str(paisaje_path),
+        colores_paisaje={},
+        colores_personaje={1: (50, 50, 50, 255)},
+        nummaxpaisa=0,
+        ruta_excel_suma=str(tmp_path / "sum_visible"),
+        alpha=0.7,
+        beta=0.3,
+    )
+
+    assert matrix[0][0] == 1
+    assert color_map[1] == (50, 50, 50, 255)
+
+
+def test_sum_collisions_keep_first_color_deterministically(tmp_path: Path) -> None:
+    paisaje_path = _write_matrix_xlsx(tmp_path / "paisaje.xlsx", [[1, 2]])
+    personaje_path = _write_matrix_xlsx(tmp_path / "personaje.xlsx", [[3, 1]])
+
+    matrix, color_map = cargar_y_sumar_matrices(
+        matrizpersonaje=str(personaje_path),
+        matrizpaisaje=str(paisaje_path),
+        colores_paisaje={1: (10, 0, 0, 255), 2: (20, 0, 0, 255)},
+        colores_personaje={1: (0, 10, 0, 255), 3: (0, 30, 0, 255)},
+        nummaxpaisa=2,
+        ruta_excel_suma=str(tmp_path / "sum_collision"),
+        alpha=0.7,
+        beta=0.3,
+    )
+
+    # Ambas celdas colisionan en el valor 2; el mapa conserva el color de la
+    # primera aparición (personaje gana la celda 0: 0.3*3 > 0.7*1).
+    assert matrix.tolist() == [[2, 2]]
+    assert color_map[2] == (0, 30, 0, 255)
+
+
 def test_weighted_sum_different_weights_produce_different_results(tmp_path: Path) -> None:
     paisaje_path = _write_matrix_xlsx(tmp_path / "paisaje.xlsx", [[10, 20]])
     personaje_path = _write_matrix_xlsx(tmp_path / "personaje.xlsx", [[30, 40]])

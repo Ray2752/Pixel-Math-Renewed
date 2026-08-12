@@ -676,6 +676,11 @@ def sum_images_composition(
     if beta < 0.0 or beta > 1.0:
         raise HTTPException(status_code=400, detail="beta must be between 0.0 and 1.0")
 
+    if alpha == 0.0 and beta == 0.0:
+        raise HTTPException(
+            status_code=400, detail="alpha and beta cannot both be zero"
+        )
+
     if pixel_size < 1 or pixel_size > 64:
         raise HTTPException(status_code=400, detail="pixel_size must be between 1 and 64")
 

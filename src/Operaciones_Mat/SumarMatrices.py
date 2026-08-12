@@ -29,23 +29,30 @@ def cargar_y_sumar_matrices(
         for j in range(columnas):
             paisaje_raw = matriz_paisaje[i][j]
             personaje_raw = matriz_personaje[i][j]
-            suma = max(round(alpha * paisaje_raw + beta * personaje_raw), 0)
 
-            if personaje_raw == 0 and paisaje_raw != 0:
+            if paisaje_raw == 0 and personaje_raw == 0:
+                matriz_suma[i][j] = 0
+                color_a_numero.setdefault(0, (0, 0, 0, 0))
+                continue
+
+            # Un píxel visible nunca puede quedar en 0 (0 se renderiza como
+            # transparente), aunque los pesos redondeen la suma a cero.
+            suma = max(round(alpha * paisaje_raw + beta * personaje_raw), 1)
+
+            if personaje_raw == 0:
                 color = colores_paisaje[paisaje_raw]
-            elif paisaje_raw == 0 and personaje_raw != 0:
+            elif paisaje_raw == 0:
                 color = colores_personaje[personaje_raw]
-            elif paisaje_raw == 0 and personaje_raw == 0:
-                color = (0, 0, 0, 0)
-            else:
+            elif alpha * paisaje_raw >= beta * personaje_raw:
                 # Both sides contribute a real color: whichever weighted
                 # magnitude is larger wins that pixel's color.
-                if alpha * paisaje_raw >= beta * personaje_raw:
-                    color = colores_paisaje[paisaje_raw]
-                else:
-                    color = colores_personaje[personaje_raw]
+                color = colores_paisaje[paisaje_raw]
+            else:
+                color = colores_personaje[personaje_raw]
 
-            color_a_numero[suma] = color
+            # Cada valor de la matriz mapea a UN solo color; ante colisiones de
+            # suma se conserva el color de la primera aparición (determinista).
+            color_a_numero.setdefault(suma, color)
             matriz_suma[i][j] = suma
 
     df_sumado = pd.DataFrame(matriz_suma)

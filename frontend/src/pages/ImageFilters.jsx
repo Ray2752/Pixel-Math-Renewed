@@ -53,8 +53,13 @@ export default function ImageFilters() {
 
   async function handleExportJson() {
     if (!result) return;
-    const data = await getMatrixData(result.job_id, "numeric_matrix_xlsx");
-    downloadMatrixAsJson(data, `${result.job_id}_matrix.json`);
+    try {
+      const data =
+        terminalMatrix ?? (await getMatrixData(result.job_id, "numeric_matrix_xlsx"));
+      downloadMatrixAsJson(data, `${result.job_id}_matrix.json`);
+    } catch {
+      setError(t("shared.couldNotLoadMatrix"));
+    }
   }
 
   return (

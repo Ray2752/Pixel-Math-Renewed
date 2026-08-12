@@ -30,6 +30,8 @@ export const translations = {
     "upload.dragDrop": "Drag & drop an image",
     "upload.hint": "PNG, JPG or WebP (max 10MB) — or click to browse",
     "upload.currentInput": "Current input:",
+    "upload.invalidType": "The selected file is not an image.",
+    "upload.tooLarge": (mb) => `The image exceeds the ${mb} MB limit.`,
 
     // Home
     "home.heroTitle": "Visualizing Linear Algebra",
@@ -87,6 +89,7 @@ export const translations = {
     "filters.execute": "Execute Pipeline",
     "filters.stages": "Pipeline Stages",
     "filters.palette": "Palette",
+    "filters.paletteMore": (count) => `+${count} more colors`,
     "filters.dataArray": "Data Output Array",
     "filters.exportPng": "Export PNG",
     "filters.exportJson": "Export JSON Array",
@@ -173,6 +176,8 @@ export const translations = {
     "upload.dragDrop": "Arrastra y suelta una imagen",
     "upload.hint": "PNG, JPG o WebP (máx 10MB) — o haz clic para elegir",
     "upload.currentInput": "Entrada actual:",
+    "upload.invalidType": "El archivo seleccionado no es una imagen.",
+    "upload.tooLarge": (mb) => `La imagen supera el límite de ${mb} MB.`,
 
     // Home
     "home.heroTitle": "Visualizando Álgebra Lineal",
@@ -230,6 +235,7 @@ export const translations = {
     "filters.execute": "Ejecutar Pipeline",
     "filters.stages": "Etapas del Pipeline",
     "filters.palette": "Paleta",
+    "filters.paletteMore": (count) => `+${count} colores más`,
     "filters.dataArray": "Arreglo de Datos de Salida",
     "filters.exportPng": "Exportar PNG",
     "filters.exportJson": "Exportar Arreglo JSON",

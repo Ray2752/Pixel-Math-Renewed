@@ -59,8 +59,12 @@ export default function ImageComposition() {
 
   async function handleExportArray() {
     if (!result) return;
-    const data = await getMatrixData(result.job_id, "sum_matrix_xlsx");
-    downloadMatrixAsJson(data, `${result.job_id}_sum_matrix.json`);
+    try {
+      const data = await getMatrixData(result.job_id, "sum_matrix_xlsx");
+      downloadMatrixAsJson(data, `${result.job_id}_sum_matrix.json`);
+    } catch {
+      setError(t("shared.couldNotLoadMatrix"));
+    }
   }
 
   return (

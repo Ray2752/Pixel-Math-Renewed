@@ -329,6 +329,21 @@ def test_palette_endpoint_success() -> None:
     assert len(body["swatches"][0]["rgba"]) == 4
 
 
+def test_composition_rejects_both_weights_zero() -> None:
+    image_a = _make_test_image_bytes()
+    image_b = _make_test_image_bytes()
+    response = client.post(
+        "/api/v1/compositions/sum-images",
+        files={
+            "landscape_image": ("a.png", image_a, "image/png"),
+            "character_image": ("b.png", image_b, "image/png"),
+        },
+        data={"pixel_size": 2, "color_levels": 64, "alpha": 0, "beta": 0},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "alpha and beta cannot both be zero"
+
+
 def test_image_operation_rejects_pixel_size_larger_than_image() -> None:
     image_bytes = _make_test_image_bytes()
     response = client.post(

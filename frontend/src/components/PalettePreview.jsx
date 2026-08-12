@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getPalette } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
 
+const MAX_SWATCHES = 192;
+
 export default function PalettePreview({ jobId, artifactKey }) {
   const { t } = useSettings();
   const [swatches, setSwatches] = useState(null);
@@ -33,9 +35,12 @@ export default function PalettePreview({ jobId, artifactKey }) {
     );
   if (swatches.length === 0) return <p className="meta-text">—</p>;
 
+  const visible = swatches.slice(0, MAX_SWATCHES);
+  const hiddenCount = swatches.length - visible.length;
+
   return (
     <div className="palette-strip">
-      {swatches.map((swatch) => (
+      {visible.map((swatch) => (
         <div
           key={swatch.number}
           className="palette-swatch"
@@ -45,6 +50,9 @@ export default function PalettePreview({ jobId, artifactKey }) {
           }}
         />
       ))}
+      {hiddenCount > 0 && (
+        <span className="meta-text">{t("filters.paletteMore", hiddenCount)}</span>
+      )}
     </div>
   );
 }

@@ -580,6 +580,8 @@ ul {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+  max-height: 10rem;
+  overflow-y: auto;
 }
 
 .palette-swatch {
