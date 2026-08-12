@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { readImageDimensions } from "../utils/artifacts";
+import { downscaleForUpload, readImageDimensions } from "../utils/artifacts";
 import { useSettings } from "../context/SettingsContext";
 
 const MAX_UPLOAD_MB = 10;
@@ -31,11 +31,13 @@ export function useImageUpload() {
       return;
     }
 
-    setFile(selected);
     try {
-      const nextDimensions = await readImageDimensions(selected);
+      const prepared = await downscaleForUpload(selected);
+      setFile(prepared);
+      const nextDimensions = await readImageDimensions(prepared);
       setDimensions(nextDimensions);
     } catch (err) {
+      setFile(selected);
       setError(err.message);
     }
   }
