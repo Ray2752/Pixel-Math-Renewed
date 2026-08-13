@@ -86,7 +86,7 @@ export default function Home() {
           <span className="status-pill-dot" />
           {pillLabel}
         </span>
-        <div className="page-header" style={{ marginTop: "1rem" }}>
+        <div className="page-header" style={{ marginTop: "1.5rem" }}>
           <h1>
             {t("home.heroTitle")}{" "}
             <span style={{ color: "var(--color-primary-light)" }}>{t("home.heroTitleAccent")}</span>

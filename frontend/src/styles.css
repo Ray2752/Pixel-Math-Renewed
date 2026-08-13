@@ -246,6 +246,7 @@ a {
   border-radius: 0.75rem;
   padding: 1.5rem;
   backdrop-filter: blur(6px);
+  margin: 1rem 0;
 }
 
 .panel h2 {
