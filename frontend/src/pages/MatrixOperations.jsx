@@ -6,7 +6,7 @@ import { useSettings } from "../context/SettingsContext";
 import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import UploadZone from "../components/UploadZone";
-import { isImageArtifact } from "../utils/artifacts";
+import { isImageArtifact, isPixelatedArtifact, labelForArtifact } from "../utils/artifacts";
 
 export default function MatrixOperations() {
   const { settings, t } = useSettings();
@@ -20,8 +20,9 @@ export default function MatrixOperations() {
     settings.colorLevels
   );
 
-  const { file, dimensions, error: uploadError, handleFile } = useImageUpload();
-  const { result, error, jobStatus, isLoading, isSlow, run, setError } =
+  const { file, dimensions, error: uploadError, handleFile, reset: resetUpload } =
+    useImageUpload();
+  const { result, error, jobStatus, isLoading, isSlow, run, reset: resetJob, setError } =
     useJobSubmit("pixelmath:lastJob:matrixOps");
 
   // Derivados del resultado (sobreviven a un refresh vía restauración del job)
@@ -58,6 +59,14 @@ export default function MatrixOperations() {
     }
 
     await run(runImageOperation({ operation, file, pixelSize, colorLevels }));
+  }
+
+  function handleReset() {
+    resetUpload();
+    resetJob();
+    setOperation("transpose");
+    setPixelSize(settings.pixelSize);
+    setColorLevels(settings.colorLevels);
   }
 
   return (
@@ -110,16 +119,21 @@ export default function MatrixOperations() {
               onChange={setColorLevels}
             />
 
-            <button type="submit" disabled={isLoading}>
-              {isLoading && <span className="spinner" />}
-              {t("matrixOps.execute")}
-            </button>
+            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+              <button type="submit" disabled={isLoading}>
+                {isLoading && <span className="spinner" />}
+                {t("matrixOps.execute")}
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleReset}>
+                {t("shared.reset")}
+              </button>
+            </div>
           </form>
 
-          {uploadError && <p className="error">{uploadError}</p>}
-          {error && <p className="error">{error}</p>}
+          {uploadError && <p className="error" role="alert">{uploadError}</p>}
+          {error && <p className="error" role="alert">{error}</p>}
           {isLoading ? (
-            <div className="loading-box">
+            <div className="loading-box" role="status">
               <span className="spinner" />
               <span>
                 {t("shared.processing")}
@@ -127,7 +141,7 @@ export default function MatrixOperations() {
               </span>
             </div>
           ) : (
-            jobStatus && <p className="job-status">{jobStatus}</p>
+            jobStatus && <p className="job-status" role="status">{jobStatus}</p>
           )}
         </section>
 
@@ -143,17 +157,24 @@ export default function MatrixOperations() {
                   gap: "0.6rem",
                 }}
               >
-                <p style={{ margin: 0 }}>Job: {result.job_id}</p>
+                <p style={{ margin: 0 }}>
+                  {t("shared.jobLabel")}: {result.job_id}
+                </p>
                 <div style={{ display: "flex", gap: "0.6rem" }}>
-                  <a href={getResultBundleDownloadUrl(result.job_id)} target="_blank" rel="noreferrer">
-                    <button type="button" className="btn-secondary">
-                      ⤓ .ZIP
-                    </button>
+                  <a
+                    className="btn btn-secondary"
+                    href={getResultBundleDownloadUrl(result.job_id)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    ⤓ .ZIP
                   </a>
-                  <a href={getMatrixCsvUrl(result.job_id, "numeric_matrix_xlsx")} download>
-                    <button type="button" className="btn-secondary">
-                      ⤓ .CSV
-                    </button>
+                  <a
+                    className="btn btn-secondary"
+                    href={getMatrixCsvUrl(result.job_id, "numeric_matrix_xlsx")}
+                    download
+                  >
+                    ⤓ .CSV
                   </a>
                 </div>
               </div>
@@ -168,7 +189,7 @@ export default function MatrixOperations() {
               )}
               {warnings.length > 0 &&
                 warnings.map((warning) => (
-                  <p key={warning} className="warn-text">
+                  <p key={warning} className="warn-text" role="status">
                     {translateWarning(warning)}
                   </p>
                 ))}
@@ -178,8 +199,12 @@ export default function MatrixOperations() {
                   .filter(([, value]) => isImageArtifact(value))
                   .map(([key, value]) => (
                     <figure key={key} className="preview-card">
-                      <img src={value} alt={key} />
-                      <figcaption>{key}</figcaption>
+                      <img
+                        src={value}
+                        alt={labelForArtifact(key, t)}
+                        className={isPixelatedArtifact(key) ? "pixelated" : undefined}
+                      />
+                      <figcaption>{labelForArtifact(key, t)}</figcaption>
                     </figure>
                   ))}
               </div>

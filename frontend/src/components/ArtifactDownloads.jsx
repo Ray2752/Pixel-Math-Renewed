@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMatrixCsvUrl, getMatrixData } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
-import { isImageArtifact } from "../utils/artifacts";
+import { isImageArtifact, labelForArtifact } from "../utils/artifacts";
 import MatrixTable from "./MatrixTable";
 import MatrixTerminalView from "./MatrixTerminalView";
 
@@ -72,7 +72,7 @@ export default function ArtifactDownloads({
               rel="noreferrer"
               download={key.endsWith("_xlsx") || isImageArtifact(artifacts[key])}
             >
-              ↓ {key}
+              ↓ {labelForArtifact(key, t)}
             </a>
             {key.endsWith("_xlsx") && (
               <>
@@ -103,7 +103,7 @@ export default function ArtifactDownloads({
           {matrixView.rows ? (
             <ViewComponent rows={matrixView.rows} shape={matrixView.shape} />
           ) : (
-            <p className="error">{t("shared.couldNotLoadMatrix")}</p>
+            <p className="error" role="alert">{t("shared.couldNotLoadMatrix")}</p>
           )}
         </div>
       )}

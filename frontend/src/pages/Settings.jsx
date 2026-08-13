@@ -15,6 +15,7 @@ export default function Settings() {
         <h2>{t("settings.language")}</h2>
         <div className="form-grid" style={{ marginTop: "1rem", maxWidth: "20rem" }}>
           <select
+            aria-label={t("settings.language")}
             value={settings.language}
             onChange={(event) => update({ language: event.target.value })}
           >
@@ -67,6 +68,7 @@ export default function Settings() {
         <h2>{t("settings.matrixViewer")}</h2>
         <div className="form-grid" style={{ marginTop: "1rem", maxWidth: "20rem" }}>
           <select
+            aria-label={t("settings.matrixViewer")}
             value={settings.matrixView}
             onChange={(event) => update({ matrixView: event.target.value })}
           >

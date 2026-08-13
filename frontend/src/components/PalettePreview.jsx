@@ -26,7 +26,7 @@ export default function PalettePreview({ jobId, artifactKey }) {
     };
   }, [jobId, artifactKey]);
 
-  if (error) return <p className="error">{error}</p>;
+  if (error) return <p className="error" role="alert">{error}</p>;
   if (!swatches)
     return (
       <p className="meta-text">

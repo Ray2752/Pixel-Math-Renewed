@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { translations } from "../i18n";
 
 const STORAGE_KEY = "pixel-math-settings";
@@ -26,6 +26,11 @@ const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(loadStoredSettings);
+
+  // Mantener el atributo lang del documento alineado con el idioma elegido
+  useEffect(() => {
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
 
   const value = useMemo(() => {
     function update(partial) {

@@ -165,6 +165,12 @@ a {
   color: var(--color-heading);
 }
 
+.sidebar-footer a.active {
+  background: rgba(124, 212, 219, 0.1);
+  color: var(--color-heading);
+  opacity: 1;
+}
+
 .app-main {
   flex: 1;
   display: flex;
@@ -323,6 +329,44 @@ button.btn-secondary {
   box-shadow: none;
 }
 
+button:active {
+  filter: brightness(0.92);
+}
+
+/* Enlaces con apariencia de botón — evita anidar <button> dentro de <a> */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  background: var(--color-primary);
+  color: #d4fcff;
+  box-shadow: 0 0 8px rgba(14, 124, 130, 0.35);
+}
+
+a.btn:hover {
+  filter: brightness(1.08);
+}
+
+a.btn.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--color-primary-light);
+  color: var(--color-primary-light);
+  box-shadow: none;
+}
+
+/* Anillo de foco visible con el acento de la marca */
+:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
 /* ---------- Range + numeric hybrid field ---------- */
 
 .range-field {
@@ -447,6 +491,9 @@ ul {
   display: block;
   border-radius: 0.4rem;
   background: rgba(0, 0, 0, 0.35);
+}
+
+.preview-card img.pixelated {
   image-rendering: pixelated;
 }
 
@@ -456,8 +503,13 @@ ul {
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-dim);
+  /* --color-text-dim sobre #313636 da 3.88:1 y falla AA en este tamaño */
+  color: var(--color-text);
   overflow-wrap: anywhere;
+}
+
+.preview-card .meta-text {
+  color: var(--color-text);
 }
 
 .result-subtitle {
@@ -919,6 +971,12 @@ ul {
   animation: spin 0.8s linear infinite;
   vertical-align: middle;
   flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
 }
 
 .loading-box {

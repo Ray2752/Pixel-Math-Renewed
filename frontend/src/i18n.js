@@ -28,6 +28,47 @@ export const translations = {
     "shared.loading": "Loading…",
     "shared.copy": "Copy",
     "shared.copied": "Copied!",
+    "shared.jobLabel": "Job",
+    "shared.reset": "Reset",
+    "shared.matrixDataHeader": (shape) => `# Pixel matrix data [${shape}]`,
+    "shared.matrixTruncated": (rows, cols) =>
+      `Showing the first ${rows}×${cols} cells — download the CSV for the full matrix.`,
+
+    // API errors (translated from backend detail strings)
+    "apiError.serverError": (code) => `Server error (${code}). Try again in a moment.`,
+    "apiError.pixelSizeExceedsImage": (px, side) =>
+      `Pixel size (${px}) can't exceed the image's smallest side (${side}px). Lower the pixel size.`,
+    "apiError.fileTooLarge": (mb) => `The image exceeds the ${mb} MB limit.`,
+    "apiError.weightsZero": "Weights α and β can't both be zero.",
+    "apiError.notAnImage": "The file must be an image.",
+    "apiError.dimensionsMismatch": "Both images must have the same dimensions.",
+    "apiError.jobNotFound": "The job no longer exists on the server (results are kept for 24 hours).",
+    "apiError.jobTimeout": "The job didn't finish in the expected time. Try again.",
+    "apiError.invalidParams": "One of the parameters is out of range.",
+    "apiError.unprocessableImage": "The image couldn't be processed. Try a different file.",
+    "apiError.operationFailed": (detail) => `The operation failed: ${detail}`,
+
+    // Artifact display names
+    "artifact.source": "Source image",
+    "artifact.simplified": "Simplified colors",
+    "artifact.pixel_art": "Pixel art",
+    "artifact.numeric_matrix_xlsx": "Numeric matrix (XLSX)",
+    "artifact.color_map_xlsx": "Color map (XLSX)",
+    "artifact.numeric_matrix_preview": "Numeric matrix preview",
+    "artifact.result_image": "Result image",
+    "artifact.result_numeric_preview": "Result numeric preview",
+    "artifact.bundle_zip": "ZIP bundle",
+    "artifact.landscape_source": "Landscape source",
+    "artifact.landscape_pixel": "Landscape pixel art",
+    "artifact.landscape_matrix_xlsx": "Landscape matrix (XLSX)",
+    "artifact.landscape_numeric_preview": "Landscape numeric preview",
+    "artifact.character_source": "Character source",
+    "artifact.character_pixel": "Character pixel art",
+    "artifact.character_matrix_xlsx": "Character matrix (XLSX)",
+    "artifact.character_numeric_preview": "Character numeric preview",
+    "artifact.sum_matrix_xlsx": "Sum matrix (XLSX)",
+    "artifact.sum_numeric_preview": "Sum numeric preview",
+    "artifact.sum_final_image": "Final composition",
 
     // Upload zone
     "upload.dragDrop": "Drag & drop an image",
@@ -122,6 +163,8 @@ export const translations = {
       "Dimension mismatch detected. Select files with the same width and height.",
     "composition.selectBoth": "Select both landscape and character images.",
     "composition.sameDimensions": "Images must have exactly the same dimensions.",
+    "composition.emptyTitle": "Upload two images to see their composition",
+    "composition.emptyHint": "Awaiting dataset input…",
 
     // Settings
     "settings.title": "Settings",
@@ -146,6 +189,11 @@ export const translations = {
       "Combines a landscape image [A] and a character image [B] through a weighted element-wise sum of their pixel matrices: C = αA + βB. Both images must share the same dimensions. Adjusting the weights changes how strongly each source contributes to the final composed image.",
     "docs.source": "Source",
     "docs.sourceLink": "View the source code on GitHub",
+
+    // Not found
+    "notFound.title": "Page not found",
+    "notFound.body": "This address doesn't match any module.",
+    "notFound.back": "Go to Home",
   },
 
   es: {
@@ -175,6 +223,47 @@ export const translations = {
     "shared.requestTimeout":
       "El servidor tardó demasiado en responder. Puede estar despertando — inténtalo de nuevo en un momento.",
     "shared.loading": "Cargando…",
+    "shared.jobLabel": "Trabajo",
+    "shared.reset": "Reiniciar",
+    "shared.matrixDataHeader": (shape) => `# Datos de la matriz de píxeles [${shape}]`,
+    "shared.matrixTruncated": (rows, cols) =>
+      `Mostrando las primeras ${rows}×${cols} celdas — descarga el CSV para ver la matriz completa.`,
+
+    // Errores del API (traducidos desde los mensajes del backend)
+    "apiError.serverError": (code) => `Error del servidor (${code}). Inténtalo de nuevo en un momento.`,
+    "apiError.pixelSizeExceedsImage": (px, side) =>
+      `El tamaño de píxel (${px}) no puede superar el lado menor de la imagen (${side}px). Baja el tamaño de píxel.`,
+    "apiError.fileTooLarge": (mb) => `La imagen supera el límite de ${mb} MB.`,
+    "apiError.weightsZero": "Los pesos α y β no pueden ser ambos cero.",
+    "apiError.notAnImage": "El archivo debe ser una imagen.",
+    "apiError.dimensionsMismatch": "Ambas imágenes deben tener las mismas dimensiones.",
+    "apiError.jobNotFound": "El trabajo ya no existe en el servidor (los resultados se conservan 24 horas).",
+    "apiError.jobTimeout": "El trabajo no terminó en el tiempo esperado. Inténtalo de nuevo.",
+    "apiError.invalidParams": "Uno de los parámetros está fuera de rango.",
+    "apiError.unprocessableImage": "No se pudo procesar la imagen. Prueba con otro archivo.",
+    "apiError.operationFailed": (detail) => `La operación falló: ${detail}`,
+
+    // Nombres de artefactos
+    "artifact.source": "Imagen fuente",
+    "artifact.simplified": "Colores simplificados",
+    "artifact.pixel_art": "Pixel art",
+    "artifact.numeric_matrix_xlsx": "Matriz numérica (XLSX)",
+    "artifact.color_map_xlsx": "Mapa de color (XLSX)",
+    "artifact.numeric_matrix_preview": "Vista previa de la matriz",
+    "artifact.result_image": "Imagen resultado",
+    "artifact.result_numeric_preview": "Vista numérica del resultado",
+    "artifact.bundle_zip": "Paquete ZIP",
+    "artifact.landscape_source": "Paisaje original",
+    "artifact.landscape_pixel": "Paisaje pixelado",
+    "artifact.landscape_matrix_xlsx": "Matriz del paisaje (XLSX)",
+    "artifact.landscape_numeric_preview": "Vista numérica del paisaje",
+    "artifact.character_source": "Personaje original",
+    "artifact.character_pixel": "Personaje pixelado",
+    "artifact.character_matrix_xlsx": "Matriz del personaje (XLSX)",
+    "artifact.character_numeric_preview": "Vista numérica del personaje",
+    "artifact.sum_matrix_xlsx": "Matriz suma (XLSX)",
+    "artifact.sum_numeric_preview": "Vista numérica de la suma",
+    "artifact.sum_final_image": "Composición final",
     "shared.copy": "Copiar",
     "shared.copied": "¡Copiado!",
 
@@ -271,6 +360,8 @@ export const translations = {
       "Las dimensiones no coinciden. Selecciona archivos con el mismo ancho y alto.",
     "composition.selectBoth": "Selecciona ambas imágenes: paisaje y personaje.",
     "composition.sameDimensions": "Las imágenes deben tener exactamente las mismas dimensiones.",
+    "composition.emptyTitle": "Sube dos imágenes para ver su composición",
+    "composition.emptyHint": "Esperando datos de entrada…",
 
     // Settings
     "settings.title": "Configuración",
@@ -295,5 +386,46 @@ export const translations = {
       "Combina una imagen de paisaje [A] y una de personaje [B] mediante una suma ponderada elemento a elemento de sus matrices de píxeles: C = αA + βB. Ambas imágenes deben tener las mismas dimensiones. Ajustar los pesos cambia cuánto contribuye cada fuente a la imagen final.",
     "docs.source": "Código Fuente",
     "docs.sourceLink": "Ver el código fuente en GitHub",
+
+    // Página no encontrada
+    "notFound.title": "Página no encontrada",
+    "notFound.body": "Esta dirección no corresponde a ningún módulo.",
+    "notFound.back": "Ir al Inicio",
   },
 };
+
+// Traduce los mensajes de error del backend (siempre en inglés) al idioma
+// activo. Los mensajes que no coinciden con ningún patrón se muestran tal cual.
+export function translateApiError(message, t) {
+  if (!message) return message;
+
+  // Los endpoints envuelven la causa: "<Operación> failed: <detalle>"
+  const wrapped = message.match(
+    /^.+?(?:operation failed|processing failed|composition failed): (.+)$/
+  );
+  if (wrapped) {
+    return t("apiError.operationFailed", translateApiError(wrapped[1], t));
+  }
+
+  const serverError = message.match(/^Server error \((\d+)\)$/);
+  if (serverError) return t("apiError.serverError", serverError[1]);
+
+  const pixelTooBig = message.match(
+    /pixel_size \((\d+)\) cannot exceed the smallest side of the processed image \((\d+)px\)/
+  );
+  if (pixelTooBig) return t("apiError.pixelSizeExceedsImage", pixelTooBig[1], pixelTooBig[2]);
+
+  const tooLarge = message.match(/File exceeds max size of (\d+) MB/);
+  if (tooLarge) return t("apiError.fileTooLarge", tooLarge[1]);
+
+  if (message.includes("cannot both be zero")) return t("apiError.weightsZero");
+  if (message.includes("must be an image")) return t("apiError.notAnImage");
+  if (message.includes("must have the same dimensions")) return t("apiError.dimensionsMismatch");
+  if (message.includes("Job not found")) return t("apiError.jobNotFound");
+  if (message.includes("did not finish in time")) return t("apiError.jobTimeout");
+  if (message.includes("must be between")) return t("apiError.invalidParams");
+  if (message.startsWith("Could not process image file")) return t("apiError.unprocessableImage");
+  if (message.startsWith("Invalid image file")) return t("apiError.unprocessableImage");
+
+  return message;
+}

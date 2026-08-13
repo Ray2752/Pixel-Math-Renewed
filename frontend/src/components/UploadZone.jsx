@@ -27,7 +27,10 @@ export default function UploadZone({ label, file, dimensions, onFile }) {
         tabIndex={0}
         onClick={openPicker}
         onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") openPicker();
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openPicker();
+          }
         }}
         onDragOver={(event) => {
           event.preventDefault();

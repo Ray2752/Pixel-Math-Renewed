@@ -94,13 +94,11 @@ export default function Home() {
           <p>{t("home.heroBody")}</p>
         </div>
         <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem", flexWrap: "wrap" }}>
-          <Link to="/matrix-operations">
-            <button type="button">{t("home.getStarted")}</button>
+          <Link to="/matrix-operations" className="btn">
+            {t("home.getStarted")}
           </Link>
-          <Link to="/documentation">
-            <button type="button" className="btn-secondary">
-              {t("home.readDocs")}
-            </button>
+          <Link to="/documentation" className="btn btn-secondary">
+            {t("home.readDocs")}
           </Link>
         </div>
       </section>

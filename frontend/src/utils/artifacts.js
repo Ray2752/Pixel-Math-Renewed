@@ -2,6 +2,17 @@ export function isImageArtifact(url) {
   return /\.(png|jpg|jpeg|webp|gif)$/i.test(url);
 }
 
+export function labelForArtifact(key, t) {
+  const label = t(`artifact.${key}`);
+  return label === `artifact.${key}` ? key : label;
+}
+
+// Solo el pixel art y las imágenes-resultado se benefician del reescalado
+// con bordes duros; la fuente y las vistas numéricas se ven mejor suavizadas.
+export function isPixelatedArtifact(key) {
+  return /pixel|result_image|sum_final/.test(key);
+}
+
 export function formatDimensions(dimensions) {
   if (!dimensions) {
     return "-";

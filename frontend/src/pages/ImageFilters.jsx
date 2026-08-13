@@ -14,6 +14,7 @@ import ArtifactDownloads from "../components/ArtifactDownloads";
 import MatrixTerminalView from "../components/MatrixTerminalView";
 import PalettePreview from "../components/PalettePreview";
 import UploadZone from "../components/UploadZone";
+import { isPixelatedArtifact, labelForArtifact } from "../utils/artifacts";
 
 export default function ImageFilters() {
   const { settings, t } = useSettings();
@@ -110,10 +111,10 @@ export default function ImageFilters() {
             </button>
           </form>
 
-          {uploadError && <p className="error">{uploadError}</p>}
-          {error && <p className="error">{error}</p>}
+          {uploadError && <p className="error" role="alert">{uploadError}</p>}
+          {error && <p className="error" role="alert">{error}</p>}
           {isLoading ? (
-            <div className="loading-box">
+            <div className="loading-box" role="status">
               <span className="spinner" />
               <span>
                 {t("shared.processing")}
@@ -121,22 +122,28 @@ export default function ImageFilters() {
               </span>
             </div>
           ) : (
-            jobStatus && <p className="job-status">{jobStatus}</p>
+            jobStatus && <p className="job-status" role="status">{jobStatus}</p>
           )}
         </section>
 
         <div>
           {result ? (
             <section className="panel">
-              <p>Job: {result.job_id}</p>
+              <p>
+                {t("shared.jobLabel")}: {result.job_id}
+              </p>
 
               <h3 className="result-subtitle">{t("filters.stages")}</h3>
               <div className="preview-grid">
                 {["source", "simplified", "pixel_art"].map((key) =>
                   result.artifacts[key] ? (
                     <figure key={key} className="preview-card">
-                      <img src={result.artifacts[key]} alt={key} />
-                      <figcaption>{key}</figcaption>
+                      <img
+                        src={result.artifacts[key]}
+                        alt={labelForArtifact(key, t)}
+                        className={isPixelatedArtifact(key) ? "pixelated" : undefined}
+                      />
+                      <figcaption>{labelForArtifact(key, t)}</figcaption>
                     </figure>
                   ) : null
                 )}
@@ -159,10 +166,8 @@ export default function ImageFilters() {
                 style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap" }}
               >
                 {result.artifacts.pixel_art && (
-                  <a href={result.artifacts.pixel_art} download>
-                    <button type="button" className="btn-secondary">
-                      {t("filters.exportPng")}
-                    </button>
+                  <a className="btn btn-secondary" href={result.artifacts.pixel_art} download>
+                    {t("filters.exportPng")}
                   </a>
                 )}
                 <button type="button" className="btn-secondary" onClick={handleExportJson}>

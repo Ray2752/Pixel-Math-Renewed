@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getJobResult, waitForJobCompletion } from "../api/client";
 import { useSettings } from "../context/SettingsContext";
+import { translateApiError } from "../i18n";
 
 const SLOW_HINT_DELAY_MS = 6000;
 
@@ -61,7 +62,11 @@ export function useJobSubmit(storageKey) {
       onComplete?.(completed);
       setJobStatus(t("shared.jobCompleted", kickoff.job_id));
     } catch (err) {
-      setError(err.message === "REQUEST_TIMEOUT" ? t("shared.requestTimeout") : err.message);
+      setError(
+        err.message === "REQUEST_TIMEOUT"
+          ? t("shared.requestTimeout")
+          : translateApiError(err.message, t)
+      );
       setJobStatus("");
     } finally {
       clearTimeout(slowTimerRef.current);

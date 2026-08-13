@@ -12,6 +12,7 @@ import RangeField from "../components/RangeField";
 import ArtifactDownloads from "../components/ArtifactDownloads";
 import MatrixInspector from "../components/MatrixInspector";
 import UploadZone from "../components/UploadZone";
+import { isPixelatedArtifact, labelForArtifact } from "../utils/artifacts";
 
 export default function ImageComposition() {
   const { settings, t } = useSettings();
@@ -28,8 +29,18 @@ export default function ImageComposition() {
 
   const landscape = useImageUpload();
   const character = useImageUpload();
-  const { result, error, jobStatus, isLoading, isSlow, run, setError } =
+  const { result, error, jobStatus, isLoading, isSlow, run, reset: resetJob, setError } =
     useJobSubmit("pixelmath:lastJob:composition");
+
+  function handleReset() {
+    landscape.reset();
+    character.reset();
+    resetJob();
+    setPixelSize(settings.pixelSize);
+    setColorLevels(settings.colorLevels);
+    setAlpha(settings.alpha);
+    setBeta(settings.beta);
+  }
 
   const hasDimensionMismatch =
     landscape.dimensions &&
@@ -149,20 +160,27 @@ export default function ImageComposition() {
             <p className="meta-text">
               C = {alpha.toFixed(2)}·A + {beta.toFixed(2)}·B
             </p>
-            <button type="submit" disabled={hasDimensionMismatch || isLoading}>
-              {isLoading && <span className="spinner" />}
-              {t("composition.computeSum")}
-            </button>
+            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+              <button type="submit" disabled={hasDimensionMismatch || isLoading}>
+                {isLoading && <span className="spinner" />}
+                {t("composition.computeSum")}
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleReset}>
+                {t("shared.reset")}
+              </button>
+            </div>
           </div>
         </section>
       </form>
 
-      {hasDimensionMismatch && <p className="warn-text">{t("composition.dimensionMismatch")}</p>}
-      {landscape.error && <p className="error">{landscape.error}</p>}
-      {character.error && <p className="error">{character.error}</p>}
-      {error && <p className="error">{error}</p>}
+      {hasDimensionMismatch && (
+        <p className="warn-text" role="alert">{t("composition.dimensionMismatch")}</p>
+      )}
+      {landscape.error && <p className="error" role="alert">{landscape.error}</p>}
+      {character.error && <p className="error" role="alert">{character.error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {isLoading ? (
-        <div className="loading-box">
+        <div className="loading-box" role="status">
           <span className="spinner" />
           <span>
             {t("shared.processing")}
@@ -170,12 +188,22 @@ export default function ImageComposition() {
           </span>
         </div>
       ) : (
-        jobStatus && <p className="job-status">{jobStatus}</p>
+        jobStatus && <p className="job-status" role="status">{jobStatus}</p>
+      )}
+
+      {!result && !isLoading && (
+        <div className="empty-state">
+          <span className="upload-zone-icon">⧉</span>
+          <p>{t("composition.emptyTitle")}</p>
+          <p className="meta-text">{t("composition.emptyHint")}</p>
+        </div>
       )}
 
       {result && (
         <section className="panel">
-          <p>Job: {result.job_id}</p>
+          <p>
+            {t("shared.jobLabel")}: {result.job_id}
+          </p>
           <p className="meta-text">
             C = {Number(usedAlpha).toFixed(2)}·A + {Number(usedBeta).toFixed(2)}·B
           </p>
@@ -191,8 +219,12 @@ export default function ImageComposition() {
               (key) =>
                 result.artifacts[key] ? (
                   <figure key={key} className="preview-card">
-                    <img src={result.artifacts[key]} alt={key} />
-                    <figcaption>{key}</figcaption>
+                    <img
+                      src={result.artifacts[key]}
+                      alt={labelForArtifact(key, t)}
+                      className={isPixelatedArtifact(key) ? "pixelated" : undefined}
+                    />
+                    <figcaption>{labelForArtifact(key, t)}</figcaption>
                   </figure>
                 ) : null
             )}
@@ -215,8 +247,12 @@ export default function ImageComposition() {
             {["sum_final_image", "sum_numeric_preview"].map((key) =>
               result.artifacts[key] ? (
                 <figure key={key} className="preview-card">
-                  <img src={result.artifacts[key]} alt={key} />
-                  <figcaption>{key}</figcaption>
+                  <img
+                    src={result.artifacts[key]}
+                    alt={labelForArtifact(key, t)}
+                    className={isPixelatedArtifact(key) ? "pixelated" : undefined}
+                  />
+                  <figcaption>{labelForArtifact(key, t)}</figcaption>
                 </figure>
               ) : null
             )}

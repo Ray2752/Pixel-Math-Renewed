@@ -8,6 +8,7 @@ export default function RangeField({ label, value, min, max, step = 1, onChange 
       <div className="range-field-controls">
         <input
           type="range"
+          aria-label={label}
           min={min}
           max={max}
           step={step}
@@ -16,6 +17,7 @@ export default function RangeField({ label, value, min, max, step = 1, onChange 
         />
         <input
           type="number"
+          aria-label={label}
           min={min}
           max={max}
           step={step}
