@@ -68,10 +68,9 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <NavLink to="/" className="sidebar-title" style={{ textDecoration: "none" }}>
+        <NavLink to="/" className="sidebar-title" style={{ textDecoration: "none", textalign: "center" }}>
           Pixel-Math
         </NavLink>
-        <div className="sidebar-subtitle">Terminal v1.0.4</div>
       </div>
 
       <nav className="sidebar-nav">
